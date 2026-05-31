@@ -1,0 +1,51 @@
+package config
+
+import (
+	"flag"
+	"fmt"
+	"os"
+
+	"github.com/BurntSushi/toml"
+)
+
+// Config represents the operator's configuration for the captive portal.
+type Config struct {
+	Iface          string `toml:"iface"`
+	PortalPort     int    `toml:"portal_port"`
+	SessionTimeout int    `toml:"session_timeout"`
+	IdleTimeout    int    `toml:"idle_timeout"`
+	DBPath         string `toml:"db_path"`
+	RedirectURL    string `toml:"redirect_url"`
+}
+
+// Load reads the configuration from a TOML file and overrides it with CLI flags.
+func Load(path string, args []string) (*Config, error) {
+	cfg := &Config{
+		Iface:          "wlan0",
+		PortalPort:     8080,
+		SessionTimeout: 3600,
+		IdleTimeout:    600,
+		DBPath:         "captive.db",
+		RedirectURL:    "http://192.168.1.1:8080/portal",
+	}
+
+	if path != "" {
+		if _, err := os.Stat(path); err == nil {
+			if _, err := toml.DecodeFile(path, cfg); err != nil {
+				return nil, fmt.Errorf("failed to decode config file: %w", err)
+			}
+		}
+	}
+
+	// CLI flags override config file
+	fs := flag.NewFlagSet("catsplash", flag.ContinueOnError)
+	fs.StringVar(&cfg.Iface, "iface", cfg.Iface, "Network interface to monitor")
+	fs.IntVar(&cfg.PortalPort, "port", cfg.PortalPort, "Port for the portal server")
+	fs.StringVar(&cfg.DBPath, "db", cfg.DBPath, "Path to the SQLite database")
+
+	if err := fs.Parse(args); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}

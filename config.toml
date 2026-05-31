@@ -1,0 +1,6 @@
+iface = "wlx1cbfce41183a"
+portal_port = 8080
+session_timeout = 3600
+idle_timeout = 900
+db_path = "catsplash.db"
+redirect_url = "http://192.168.10.1:8080/portal"

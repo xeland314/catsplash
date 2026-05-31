@@ -1,0 +1,5 @@
+catsplash
+catsplash.db*
+server/test_server.db*
+
+go.sum

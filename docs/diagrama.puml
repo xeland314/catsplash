@@ -1,0 +1,76 @@
+@startuml CatsplashArchitecture
+
+class Config {
+    +Iface: string
+    +PortalPort: int
+    +SessionTimeout: int
+    +IdleTimeout: int
+    +DBPath: string
+    +RedirectURL: string
+    +Load(path: string, args: []string): (*Config, error)
+}
+
+package "state" {
+    class DB {
+        +Conn: *sql.DB
+        +Open(path: string): (*DB, error)
+        +Close(): error
+    }
+
+    class Client {
+        +MAC: string
+        +IP: string
+        +State: string
+        +ConnectedAt: int64
+        +LastSeen: int64
+    }
+
+    class Reaper {
+        -db: *DB
+        -sessionTimeout: int
+        -idleTimeout: int
+        -onExpire: func(mac, ip: string)
+        +NewReaper(...)
+        +Start(interval: Duration)
+        +RunOnce()
+    }
+
+    DB "1" -- "*" Client : manages
+    Reaper o-- DB : uses
+}
+
+package "firewall" {
+    interface Executor {
+        +Execute(name: string, args: ...string): ([]byte, error)
+    }
+
+    class Firewall {
+        -exec: Executor
+        -iface: string
+        +Init(): error
+        +Teardown()
+        +SetupRedirect(ip: string, port: int): error
+        +AllowClient(mac, ip: string): error
+        +BlockClient(mac, ip: string): error
+    }
+
+    Firewall ..> Executor : uses
+}
+
+class Server {
+    -cfg: *config.Config
+    -db: *state.DB
+    -fw: *firewall.Firewall
+    -templates: *template.Template
+    +New(...)
+    +Start(): error
+    -handlePortal(w, r)
+    -handleAuth(w, r)
+    -handleRedirect(w, r)
+}
+
+Server o-- Config
+Server o-- state.DB
+Server o-- firewall.Firewall
+
+@enduml
