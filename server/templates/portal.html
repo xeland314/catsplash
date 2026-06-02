@@ -1,26 +1,269 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido a la Red</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catsplash</title>
     <style>
-        body { font-family: sans-serif; background-color: #121212; color: #e0e0e0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background-color: #1e1e1e; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align: center; max-width: 400px; width: 90%; }
-        h1 { color: #bb86fc; margin-bottom: 1rem; }
-        p { margin-bottom: 1.5rem; line-height: 1.4; }
-        button { background-color: #03dac6; color: #000; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1rem; }
-        button:hover { background-color: #018786; }
+      @import url("https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap");
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #2e1f14;
+        --text: #f9e6c6;
+        --sub: #f1a449;
+        --footer: #8a6040;
+        --border: #5c3a20;
+        --card: rgba(61, 37, 16, 0.7);
+        --window: #1e1208;
+        --header: #4a2e18;
+        --action: #4a2e18;
+        --icon: rgba(92, 58, 32, 0.5);
+      }
+
+      body {
+        font-family: "Inconsolata", monospace;
+        background-color: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Grain texture overlay */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Warm radial glow */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 70% 60% at 50% 40%,
+          rgba(241, 164, 73, 0.07) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .card {
+        position: relative;
+        z-index: 1;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        width: 90%;
+        max-width: 380px;
+        overflow: hidden;
+        box-shadow:
+          0 8px 40px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(241, 164, 73, 0.05);
+        animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Window chrome bar */
+      .window-bar {
+        background: var(--header);
+        border-bottom: 1px solid var(--border);
+        padding: 0.55rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--icon);
+        border: 1px solid var(--border);
+      }
+      .dot:first-child {
+        background: rgba(241, 164, 73, 0.4);
+      }
+
+      .window-title {
+        font-size: 0.7rem;
+        color: var(--footer);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .body {
+        padding: 2rem 1.8rem 2rem;
+        background: var(--window);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+      }
+
+      /* Cat ASCII / emoji stamp */
+      .cat-stamp {
+        font-size: 2.2rem;
+        line-height: 1;
+        margin-bottom: 1.2rem;
+        filter: sepia(0.3);
+        animation: blink-cat 4s ease-in-out infinite;
+      }
+      @keyframes blink-cat {
+        0%,
+        90%,
+        100% {
+          opacity: 1;
+        }
+        95% {
+          opacity: 0.4;
+        }
+      }
+
+      h1 {
+        font-family: "Playfair Display", serif;
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--sub);
+        letter-spacing: -0.01em;
+        margin-bottom: 0.3rem;
+        text-align: center;
+      }
+
+      .tagline {
+        font-size: 0.72rem;
+        color: var(--footer);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 1.6rem;
+      }
+
+      .divider {
+        width: 100%;
+        border: none;
+        border-top: 1px solid var(--border);
+        margin-bottom: 1.6rem;
+      }
+
+      p {
+        font-size: 0.88rem;
+        line-height: 1.65;
+        color: var(--text);
+        text-align: center;
+        margin-bottom: 1.8rem;
+        opacity: 0.85;
+      }
+
+      .btn {
+        display: block;
+        width: 100%;
+        background: var(--action);
+        border: 1px solid var(--border);
+        color: var(--sub);
+        font-family: "Inconsolata", monospace;
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.75rem 1rem;
+        border-radius: 2px;
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          color 0.2s,
+          box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(241, 164, 73, 0.12) 0%,
+          transparent 60%
+        );
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .btn:hover::before {
+        opacity: 1;
+      }
+      .btn:hover {
+        background: #5c3a20;
+        color: var(--text);
+        box-shadow:
+          0 0 0 1px var(--sub) inset,
+          0 4px 20px rgba(241, 164, 73, 0.1);
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+
+      .footer-note {
+        margin-top: 1.4rem;
+        font-size: 0.68rem;
+        color: var(--footer);
+        letter-spacing: 0.06em;
+        text-align: center;
+      }
+      .footer-note span {
+        color: var(--sub);
+        opacity: 0.6;
+      }
     </style>
-</head>
-<body>
-    <div class="container">
+  </head>
+  <body>
+    <div class="card">
+      <div class="window-bar">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <span class="window-title">portal cautivo</span>
+      </div>
+      <div class="body">
+        <div class="cat-stamp">🐱</div>
         <h1>Catsplash</h1>
-        <p>Para acceder a Internet, por favor acepta nuestros términos de uso.</p>
-        <form action="/auth" method="POST">
-            <input type="hidden" name="nonce" value="{{.Nonce}}">
-            <button type="submit">Conectar</button>
+        <div class="tagline">acceso a internet</div>
+        <hr class="divider" />
+        <p>Para conectarte, acepta los términos de uso de esta red.</p>
+        <form action="/auth" method="POST" style="width: 100%">
+          <input type="hidden" name="nonce" value="{{.Nonce}}" />
+          <button type="submit" class="btn">→ conectar</button>
         </form>
+        <div class="footer-note">
+          <span>//</span> red segura &mdash; solo uso personal
+        </div>
+      </div>
     </div>
-</body>
+  </body>
 </html>

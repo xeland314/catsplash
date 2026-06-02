@@ -1,21 +1,252 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error — Catsplash</title>
     <style>
-        body { font-family: sans-serif; background-color: #121212; color: #e0e0e0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background-color: #1e1e1e; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align: center; }
-        h1 { color: #cf6679; }
-        a { color: #bb86fc; text-decoration: none; }
+      @import url("https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap");
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #2e1f14;
+        --text: #f9e6c6;
+        --sub: #f1a449;
+        --footer: #8a6040;
+        --border: #5c3a20;
+        --card: rgba(61, 37, 16, 0.7);
+        --window: #1e1208;
+        --header: #4a2e18;
+        --err: #c0604a;
+        --err-dim: rgba(192, 96, 74, 0.15);
+      }
+
+      body {
+        font-family: "Inconsolata", monospace;
+        background-color: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 60% 50% at 50% 40%,
+          rgba(192, 96, 74, 0.06) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .card {
+        position: relative;
+        z-index: 1;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        width: 90%;
+        max-width: 380px;
+        overflow: hidden;
+        box-shadow:
+          0 8px 40px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(192, 96, 74, 0.08);
+        animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .window-bar {
+        background: var(--header);
+        border-bottom: 1px solid var(--border);
+        padding: 0.55rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(192, 96, 74, 0.4);
+        border: 1px solid var(--border);
+      }
+      .dot:not(:first-child) {
+        background: rgba(92, 58, 32, 0.5);
+      }
+      .window-title {
+        font-size: 0.7rem;
+        color: var(--footer);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .body {
+        padding: 2rem 1.8rem;
+        background: var(--window);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* Error icon */
+      .err-wrap {
+        width: 56px;
+        height: 56px;
+        border: 2px solid rgba(192, 96, 74, 0.4);
+        border-radius: 50%;
+        background: var(--err-dim);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.3rem;
+      }
+      .err-wrap svg {
+        width: 24px;
+        height: 24px;
+        stroke: var(--err);
+        stroke-width: 2.5;
+        fill: none;
+        stroke-linecap: round;
+      }
+
+      h1 {
+        font-family: "Playfair Display", serif;
+        font-size: 1.8rem;
+        font-style: italic;
+        font-weight: 400;
+        color: var(--err);
+        margin-bottom: 0.25rem;
+        text-align: center;
+      }
+      .tagline {
+        font-size: 0.7rem;
+        color: var(--footer);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 1.6rem;
+      }
+      .divider {
+        width: 100%;
+        border: none;
+        border-top: 1px solid var(--border);
+        margin-bottom: 1.5rem;
+      }
+
+      /* Error message box */
+      .msg-box {
+        width: 100%;
+        background: rgba(192, 96, 74, 0.08);
+        border: 1px solid rgba(192, 96, 74, 0.25);
+        border-left: 3px solid var(--err);
+        border-radius: 2px;
+        padding: 0.75rem 0.9rem;
+        margin-bottom: 1.7rem;
+        font-size: 0.85rem;
+        color: var(--text);
+        line-height: 1.6;
+        opacity: 0.9;
+      }
+      .msg-prefix {
+        color: var(--err);
+        font-weight: 700;
+        margin-right: 0.4rem;
+      }
+
+      .link {
+        display: block;
+        width: 100%;
+        background: var(--header);
+        border: 1px solid var(--border);
+        color: var(--sub);
+        font-family: "Inconsolata", monospace;
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.75rem 1rem;
+        border-radius: 2px;
+        cursor: pointer;
+        text-decoration: none;
+        text-align: center;
+        transition:
+          background 0.2s,
+          color 0.2s,
+          box-shadow 0.2s;
+      }
+      .link:hover {
+        background: #5c3a20;
+        color: var(--text);
+        box-shadow: 0 0 0 1px var(--sub) inset;
+      }
+
+      .footer-note {
+        margin-top: 1.3rem;
+        font-size: 0.68rem;
+        color: var(--footer);
+        letter-spacing: 0.06em;
+        text-align: center;
+      }
     </style>
-</head>
-<body>
-    <div class="container">
+  </head>
+  <body>
+    <div class="card">
+      <div class="window-bar">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <span class="window-title">error</span>
+      </div>
+      <div class="body">
+        <div class="err-wrap">
+          <svg viewBox="0 0 24 24">
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+            <circle cx="12" cy="12" r="9" />
+          </svg>
+        </div>
         <h1>Error</h1>
-        <p>{{.Message}}</p>
-        <a href="/portal">Volver al inicio</a>
+        <div class="tagline">algo salió mal</div>
+        <hr class="divider" />
+        <div class="msg-box"><span class="msg-prefix">!</span>{{.Message}}</div>
+        <a href="/portal" class="link">← volver al inicio</a>
+        <div class="footer-note">catsplash &mdash; portal cautivo</div>
+      </div>
     </div>
-</body>
+  </body>
 </html>
