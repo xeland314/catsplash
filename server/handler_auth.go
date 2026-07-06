@@ -14,7 +14,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	// Validate Nonce
 	cookie, err := r.Cookie("catsplash_nonce")
 	formNonce := r.FormValue("nonce")
-	
+
 	if err != nil {
 		log.Printf("Auth failed: missing cookie 'catsplash_nonce' for IP %s", r.RemoteAddr)
 		s.renderError(w, "Sesión inválida (falta cookie). Por favor, habilita las cookies e intenta de nuevo.")
@@ -66,6 +66,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderError(w http.ResponseWriter, msg string) {
+	w.WriteHeader(http.StatusBadRequest)
 	data := struct {
 		Message string
 	}{

@@ -179,8 +179,24 @@ case "$CMD" in
     pids=()
     for ns in "${clients[@]}"; do
       (
-        result=$(ip netns exec "$ns" curl -s -o /dev/null -w "%{http_code},%{time_total}" \
-          -d "auth_data=true" "http://$ROUTER_AP_IP:$PORTAL_PORT/auth" 2>/dev/null || echo "000,0")
+        cookie_jar=$(mktemp)
+        portal_page=$(mktemp)
+
+        ip netns exec "$ns" curl -s -c "$cookie_jar" -b "$cookie_jar" \
+          -o "$portal_page" "http://$ROUTER_AP_IP:$PORTAL_PORT/portal" >/dev/null 2>&1 || true
+
+        nonce=$(ip netns exec "$ns" sed -n 's/.*name="nonce" value="\([^"]*\)".*/\1/p' "$portal_page" | head -n 1 || true)
+
+        if [ -n "$nonce" ]; then
+          result=$(ip netns exec "$ns" curl -s -o /dev/null -w '%{http_code},%{time_total}' \
+            -b "$cookie_jar" -c "$cookie_jar" \
+            -d "auth_data=true" -d "nonce=$nonce" \
+            "http://$ROUTER_AP_IP:$PORTAL_PORT/auth" 2>/dev/null || echo "000,0")
+        else
+          result="000,0"
+        fi
+
+        rm -f "$cookie_jar" "$portal_page"
         echo "${ns#ns_client},$result" >> "$csv"
       ) &
       pids+=($!)
