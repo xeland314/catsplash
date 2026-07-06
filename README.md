@@ -9,6 +9,9 @@
 - Gestión de sesiones y clientes con SQLite, expiración por tiempo absoluto e inactividad.
 - Herramienta de control `catsctl` para revisar estado, listar clientes y gestionar sesiones.
 - Instalador guiado con `setup.sh` que prepara hostapd, dnsmasq, reglas de firewall y la configuración del sistema.
+- Panel de administración con contraseña:
+
+![admin_panel](assets/admin_panel.jpg)
 
 ## Architecture
 
