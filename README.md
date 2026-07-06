@@ -18,7 +18,7 @@ Catsplash es un portal cautivo ligero y eficiente escrito en Go, diseñado para 
 - `state/`: Persistencia en SQLite y lógica de sesiones.
 - `firewall/`: Manipulación de reglas `iptables`.
 - `server/`: Servidor HTTP, controladores y plantillas.
-- `docs/`: Documentación detallada de red, seguridad y arquitectura.
+- `docs/`: Documentación detallada de red, seguridad, arquitectura y [características comparativas](docs/features.md).
 
 ## Instalación y Uso
 

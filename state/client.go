@@ -70,3 +70,27 @@ func (db *DB) ListAuthenticated() ([]*Client, error) {
 	}
 	return clients, nil
 }
+
+// ListAll returns all clients in the database.
+func (db *DB) ListAll() ([]*Client, error) {
+	rows, err := db.Conn.Query(`
+		SELECT mac, ip, state, connected_at, last_seen
+		FROM clients`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var clients []*Client
+	for rows.Next() {
+		c := &Client{}
+		var connAt, lastSeen sql.NullInt64
+		if err := rows.Scan(&c.MAC, &c.IP, &c.State, &connAt, &lastSeen); err != nil {
+			return nil, err
+		}
+		c.ConnectedAt = connAt.Int64
+		c.LastSeen = lastSeen.Int64
+		clients = append(clients, c)
+	}
+	return clients, nil
+}

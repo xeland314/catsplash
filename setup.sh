@@ -169,14 +169,14 @@ wizard() {
     IDLE_TIMEOUT=${IDLE_TIMEOUT:-900}
     echo -e "${GREEN}[OK] Direccionamiento configurado.${NC}\n"
 
-    # 5. Compilación del binario Catsplash
-    echo -e "${BLUE}[5/6] Compilando el portal cautivo Catsplash...${NC}"
+    # 5. Compilación del binario Catsplash y Catsctl
+    echo -e "${BLUE}[5/6] Compilando Catsplash y Catsctl...${NC}"
     if [ -f Makefile ]; then
         make build
-        if [ $? -eq 0 ] && [ -f catsplash ]; then
-            echo -e "${GREEN}[OK] Catsplash compilado con éxito.${NC}\n"
+        if [ $? -eq 0 ] && [ -f catsplash ] && [ -f catsctl ]; then
+            echo -e "${GREEN}[OK] Binarios compilados con éxito.${NC}\n"
         else
-            echo -e "${RED}[ERROR] Falló la compilación de Catsplash. Verifique la instalación de Go y gcc.${NC}"
+            echo -e "${RED}[ERROR] Falló la compilación. Verifique la instalación de Go y gcc.${NC}"
             exit 1
         fi
     else
@@ -190,6 +190,8 @@ wizard() {
     # Crear directorio de instalación
     mkdir -p "$INSTALL_DIR"
     cp catsplash "$INSTALL_DIR/"
+    cp catsctl "$INSTALL_DIR/"
+    ln -sf "$INSTALL_DIR/catsctl" /usr/local/bin/catsctl
 
     # Crear archivo de configuración config.toml
     cat > "$CONFIG_FILE" <<EOF
@@ -495,8 +497,9 @@ uninstall() {
         systemctl restart NetworkManager
     fi
 
-    # Eliminar directorio de instalación
-    echo -e "${YELLOW}Eliminando directorio de instalación $INSTALL_DIR...${NC}"
+    # Eliminar directorio de instalación y enlaces
+    echo -e "${YELLOW}Eliminando directorio de instalación $INSTALL_DIR y enlaces...${NC}"
+    rm -f /usr/local/bin/catsctl
     rm -rf "$INSTALL_DIR"
 
     echo -e "${GREEN}${BOLD}Desinstalación completada con éxito.${NC}"
