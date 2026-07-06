@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,7 +29,7 @@ func main() {
 	defer db.Close()
 
 	// 3. Initialize firewall
-	fw := firewall.New(cfg.Iface, nil)
+	fw := firewall.New(cfg.Iface, cfg.WanIface, nil)
 	if err := fw.Init(); err != nil {
 		log.Fatalf("Failed to initialize firewall: %v", err)
 	}
@@ -39,9 +40,12 @@ func main() {
 	}()
 
 	// 4. Setup redirect (DNAT)
-	portalIP := "192.168.10.1" 
+	portalIP := "192.168.10.1"
+	if u, err := url.Parse(cfg.RedirectURL); err == nil && u.Hostname() != "" {
+		portalIP = u.Hostname()
+	}
 	if err := fw.SetupRedirect(portalIP, cfg.PortalPort); err != nil {
-		log.Printf("Warning: failed to setup redirect: %v", err)
+		log.Printf("Warning: failed to setup redirect to %s: %v", portalIP, err)
 	}
 
 	// 5. Start Session Reaper

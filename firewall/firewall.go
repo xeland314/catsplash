@@ -18,16 +18,18 @@ func (e *RealExecutor) Execute(name string, arg ...string) ([]byte, error) {
 
 // Firewall handles the interaction with iptables.
 type Firewall struct {
-	exec  Executor
-	iface string
+	exec     Executor
+	iface    string
+	wanIface string
 }
 
-func New(iface string, exec Executor) *Firewall {
+func New(iface string, wanIface string, exec Executor) *Firewall {
 	if exec == nil {
 		exec = &RealExecutor{}
 	}
 	return &Firewall{
-		exec:  exec,
-		iface: iface,
+		exec:     exec,
+		iface:    iface,
+		wanIface: wanIface,
 	}
 }

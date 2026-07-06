@@ -17,7 +17,7 @@ func TestHandlers(t *testing.T) {
 	defer os.Remove(dbPath)
 	db, _ := state.Open(dbPath)
 	
-	fw := firewall.New("wlan0", nil)
+	fw := firewall.New("wlan0", "eth0", nil)
 	cfg := &config.Config{PortalPort: 8080}
 	
 	srv := New(cfg, db, fw)

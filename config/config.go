@@ -16,6 +16,7 @@ type Config struct {
 	IdleTimeout    int    `toml:"idle_timeout"`
 	DBPath         string `toml:"db_path"`
 	RedirectURL    string `toml:"redirect_url"`
+	WanIface       string `toml:"wan_iface"`
 }
 
 // Load reads the configuration from a TOML file and overrides it with CLI flags.
@@ -27,6 +28,7 @@ func Load(path string, args []string) (*Config, error) {
 		IdleTimeout:    600,
 		DBPath:         "captive.db",
 		RedirectURL:    "http://192.168.1.1:8080/portal",
+		WanIface:       "eth0",
 	}
 
 	if path != "" {
@@ -40,6 +42,7 @@ func Load(path string, args []string) (*Config, error) {
 	// CLI flags override config file
 	fs := flag.NewFlagSet("catsplash", flag.ContinueOnError)
 	fs.StringVar(&cfg.Iface, "iface", cfg.Iface, "Network interface to monitor")
+	fs.StringVar(&cfg.WanIface, "wan", cfg.WanIface, "External/WAN network interface for internet access")
 	fs.IntVar(&cfg.PortalPort, "port", cfg.PortalPort, "Port for the portal server")
 	fs.StringVar(&cfg.DBPath, "db", cfg.DBPath, "Path to the SQLite database")
 

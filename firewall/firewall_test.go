@@ -18,7 +18,7 @@ func (m *MockExecutor) Execute(name string, arg ...string) ([]byte, error) {
 
 func TestFirewallInit(t *testing.T) {
 	mock := &MockExecutor{}
-	fw := New("wlan0", mock)
+	fw := New("wlan0", "eth0", mock)
 
 	if err := fw.Init(); err != nil {
 		t.Fatalf("Init failed: %v", err)
@@ -42,7 +42,7 @@ func TestFirewallInit(t *testing.T) {
 
 func TestFirewallAllowBlock(t *testing.T) {
 	mock := &MockExecutor{}
-	fw := New("wlan0", mock)
+	fw := New("wlan0", "eth0", mock)
 
 	mac := "00:11:22:33:44:55"
 	ip := "192.168.1.50"
