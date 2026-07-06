@@ -13,6 +13,19 @@ import (
 	"github.com/xeland314/catsplash/state"
 )
 
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.2f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
 func main() {
 	configPath := flag.String("config", "", "Path to configuration file")
 	flag.Usage = func() {
@@ -27,6 +40,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  auth <mac> <ip>       Manually authorize a client\n")
 		fmt.Fprintf(os.Stderr, "  kick <mac>            Manually disconnect a client\n")
 		fmt.Fprintf(os.Stderr, "  extend <mac> <mins>   Extend a client's session by N minutes\n")
+		fmt.Fprintf(os.Stderr, "  limit <mac> <mb>      Set data limit in MB for a client (0 for unlimited)\n")
+		fmt.Fprintf(os.Stderr, "  band <mac> <down> <up> Set bandwidth limits (e.g. 3mbit 1mbit, 0 to disable)\n")
 	}
 	flag.Parse()
 
@@ -88,6 +103,20 @@ func main() {
 			log.Fatalf("Invalid minutes value: %s", args[2])
 		}
 		extendClient(db, args[1], minutes)
+	case "limit":
+		if len(args) < 3 {
+			log.Fatalf("Usage: catsctl limit <mac> <quota_mb>")
+		}
+		var mb int64
+		if _, err := fmt.Sscanf(args[2], "%d", &mb); err != nil || mb < 0 {
+			log.Fatalf("Invalid quota value: %s", args[2])
+		}
+		limitClient(db, args[1], mb)
+	case "band":
+		if len(args) < 4 {
+			log.Fatalf("Usage: catsctl band <mac> <download_speed> <upload_speed>")
+		}
+		bandClient(db, fw, args[1], args[2], args[3])
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		flag.Usage()
@@ -103,12 +132,15 @@ func showStatus(db *state.DB, cfg *config.Config) {
 
 	active := 0
 	pending := 0
+	var totalDownload, totalUpload int64
 	for _, c := range clients {
 		if c.State == state.StateAuthenticated {
 			active++
 		} else {
 			pending++
 		}
+		totalDownload += c.BytesIn
+		totalUpload += c.BytesOut
 	}
 
 	fmt.Printf("Catsplash Status 🐱\n")
@@ -122,6 +154,8 @@ func showStatus(db *state.DB, cfg *config.Config) {
 	fmt.Printf("Total Clients:     %d\n", len(clients))
 	fmt.Printf("Active Sessions:   %d\n", active)
 	fmt.Printf("Pending Clients:   %d\n", pending)
+	fmt.Printf("Total Downloaded:  %s\n", formatBytes(totalDownload))
+	fmt.Printf("Total Uploaded:    %s\n", formatBytes(totalUpload))
 }
 
 func listClients(db *state.DB, sessionTimeout, idleTimeout int) {
@@ -136,13 +170,19 @@ func listClients(db *state.DB, sessionTimeout, idleTimeout int) {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "STATE\tMAC ADDRESS\tIP ADDRESS\tCONNECTED AT\tEXPIRES IN")
-	fmt.Fprintln(w, "-----\t-----------\t----------\t------------\t----------")
+	fmt.Fprintln(w, "STATE\tMAC ADDRESS\tIP ADDRESS\tCONNECTED AT\tEXPIRES IN\tDATA USED\tLIMIT\tBANDWIDTH")
+	fmt.Fprintln(w, "-----\t-----------\t----------\t------------\t----------\t---------\t-----\t---------")
 
 	now := time.Now().Unix()
 	for _, c := range clients {
 		connectedStr := "N/A"
 		expiresStr := "N/A"
+		dataUsedStr := formatBytes(c.BytesIn + c.BytesOut)
+		limitStr := "Unlimited"
+
+		if c.MaxBytes > 0 {
+			limitStr = formatBytes(c.MaxBytes)
+		}
 
 		if c.State == state.StateAuthenticated {
 			connectedStr = time.Unix(c.ConnectedAt, 0).Format("2006-01-02 15:04:05")
@@ -157,15 +197,20 @@ func listClients(db *state.DB, sessionTimeout, idleTimeout int) {
 			}
 
 			if rem <= 0 {
-				expiresStr = "Expired (Reaping)"
+				expiresStr = "Expired"
 			} else {
 				dur := time.Duration(rem) * time.Second
 				expiresStr = dur.Round(time.Second).String()
 			}
 		}
 
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-			c.State, c.MAC, c.IP, connectedStr, expiresStr)
+		bandStr := "Unlimited"
+		if c.DownloadSpeed != "" && c.DownloadSpeed != "0" || c.UploadSpeed != "" && c.UploadSpeed != "0" {
+			bandStr = "↓" + c.DownloadSpeed + " ↑" + c.UploadSpeed
+		}
+
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			c.State, c.MAC, c.IP, connectedStr, expiresStr, dataUsedStr, limitStr, bandStr)
 	}
 	w.Flush()
 }
@@ -229,4 +274,56 @@ func extendClient(db *state.DB, mac string, minutes int) {
 	}
 
 	fmt.Printf("Extended session of client %s by %d minutes successfully.\n", mac, minutes)
+}
+
+func limitClient(db *state.DB, mac string, mb int64) {
+	client, err := db.GetClient(mac)
+	if err != nil {
+		log.Fatalf("Error querying client: %v", err)
+	}
+	if client == nil {
+		log.Fatalf("Client with MAC %s not found in database.", mac)
+	}
+
+	bytesLimit := mb * 1024 * 1024
+	if err := db.UpdateMaxBytes(mac, bytesLimit); err != nil {
+		log.Fatalf("Error updating quota limit in database: %v", err)
+	}
+
+	if mb == 0 {
+		fmt.Printf("Removed data quota limit for client %s successfully.\n", mac)
+	} else {
+		fmt.Printf("Set data quota limit for client %s to %d MB (%s) successfully.\n", mac, mb, formatBytes(bytesLimit))
+	}
+}
+
+func bandClient(db *state.DB, fw *firewall.Firewall, mac, downSpeed, upSpeed string) {
+	client, err := db.GetClient(mac)
+	if err != nil {
+		log.Fatalf("Error querying client: %v", err)
+	}
+	if client == nil {
+		log.Fatalf("Client with MAC %s not found in database.", mac)
+	}
+
+	if err := db.UpdateBandwidth(mac, downSpeed, upSpeed); err != nil {
+		log.Fatalf("Error updating bandwidth in database: %v", err)
+	}
+
+	if client.State == state.StateAuthenticated {
+		if err := fw.BlockClient(mac, client.IP); err != nil {
+			log.Printf("Warning: error removing old QoS for %s: %v", mac, err)
+		}
+		if err := fw.AllowClientWithSpeed(mac, client.IP, downSpeed, upSpeed); err != nil {
+			log.Printf("Warning: error applying new QoS for %s: %v", mac, err)
+		}
+	}
+
+	if downSpeed == "0" || downSpeed == "" {
+		downSpeed = "unlimited"
+	}
+	if upSpeed == "0" || upSpeed == "" {
+		upSpeed = "unlimited"
+	}
+	fmt.Printf("Set bandwidth limits for %s: ↓ %s / ↑ %s\n", mac, downSpeed, upSpeed)
 }

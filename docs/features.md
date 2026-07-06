@@ -7,7 +7,7 @@ Este documento contiene una tabla detallada de las características actuales de 
 | **Intercepción y Redirección** | Redirección HTTP (Puerto 80) | ✅ | Intercepta peticiones HTTP y redirige al portal. |
 | | Compatibilidad CNA (iOS/Android) | ✅ | Detecta y abre el mini-navegador nativo del sistema operativo. |
 | | Reglas de Bypass por MAC/IP | ✅ | Evita la redirección para clientes ya autenticados. |
-| | Redirección HTTPS Segura | ❌ | No disponible de forma nativa (requiere falsificación de certificados, lo cual genera advertencias de seguridad). |
+| | Redirección HTTPS Segura | ⚠️ *Solo Administrados* | Intercepción en puerto 443. Requiere instalar una CA local (generada con `mkcert`) en el dispositivo cliente. |
 | **Gestión de Sesiones** | Persistencia en Base de Datos | ✅ | Almacena clientes y sesiones en base de datos SQLite. |
 | | Expiración por Tiempo Absoluto | ✅ | Desconecta al cliente tras transcurrir el tiempo máximo de sesión. |
 | | Expiración por Inactividad | ✅ | Libera la sesión si el cliente no genera tráfico en un periodo. |
@@ -38,6 +38,25 @@ Este documento contiene una tabla detallada de las características actuales de 
 *   `ndsctl auth <MAC>`: Fuerza la autenticación manual de un dispositivo para darle acceso libre.
 *   `ndsctl deauth <MAC>`: Expulsa/desconecta al cliente inmediatamente de la red.
 *   `ndsctl block <MAC>`: Coloca un dispositivo en la lista negra para evitar que pueda siquiera ver el portal.
+
+---
+
+## Nota sobre la Redirección HTTPS y `mkcert`
+
+Interceptar tráfico HTTPS (puerto 443) para mostrar el portal cautivo presenta un desafío de seguridad inherente debido al diseño de SSL/TLS (diseñado precisamente para evitar ataques de tipo Man-in-the-Middle).
+
+### ¿Es posible usar `mkcert` para solucionar esto?
+**Sí, pero con limitaciones importantes según el tipo de dispositivo:**
+
+* **Dispositivos Administrados (Entornos Corporativos/Escuelas):**
+  * **Es viable.** Si utilizas `mkcert` para generar una Autoridad de Certificación (CA) raíz local y la instalas (mediante políticas de grupo de Windows AD, MDM o scripts) en el almacén de certificados de confianza de los dispositivos clientes, estos confiarán en los certificados que genere el portal para portales seguros, eliminando las advertencias de seguridad.
+* **Dispositivos de Invitados (Redes Públicas/Móviles Personales):**
+  * **No es viable en la práctica.** La CA raíz de `mkcert` es privada. Si un dispositivo de un invitado no la tiene instalada, al intentar interceptar HTTPS verá una advertencia de seguridad crítica (bloqueo HSTS). Instalar una CA externa de forma manual en smartphones es complejo y representa un riesgo grave de seguridad para el usuario.
+
+### Enfoque Estándar de la Industria:
+Para redes con usuarios invitados, se evita interceptar el puerto 443. En su lugar:
+1. Se confía en el **Asistente de Conectividad Nativo (CNA)** del sistema operativo del cliente (iOS/Android/Windows), el cual realiza pruebas en HTTP (`http://connectivitycheck.gstatic.com/generate_204`) al conectarse a la red WiFi y levanta automáticamente el portal web.
+2. Se instruye al usuario a ingresar a una página sin SSL (por ejemplo, `http://neverssl.com`) si el portal no se abre automáticamente.
 
 ---
 

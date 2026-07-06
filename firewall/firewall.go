@@ -16,11 +16,14 @@ func (e *RealExecutor) Execute(name string, arg ...string) ([]byte, error) {
 	return exec.Command(name, arg...).CombinedOutput()
 }
 
-// Firewall handles the interaction with iptables.
+// Firewall handles the interaction with iptables and tc.
 type Firewall struct {
-	exec     Executor
-	iface    string
-	wanIface string
+	exec          Executor
+	iface         string
+	wanIface      string
+	qdiscInit     bool
+	DownloadSpeed string
+	UploadSpeed   string
 }
 
 func New(iface string, wanIface string, exec Executor) *Firewall {
@@ -28,8 +31,10 @@ func New(iface string, wanIface string, exec Executor) *Firewall {
 		exec = &RealExecutor{}
 	}
 	return &Firewall{
-		exec:     exec,
-		iface:    iface,
-		wanIface: wanIface,
+		exec:          exec,
+		iface:         iface,
+		wanIface:      wanIface,
+		DownloadSpeed: "0",
+		UploadSpeed:   "0",
 	}
 }

@@ -51,14 +51,17 @@ func TestFirewallAllowBlock(t *testing.T) {
 	fw.BlockClient(mac, ip)
 
 	expectedCmds := []string{
-		// Idempotency cleanup
+		// Idempotency cleanup (upload, download, nat)
 		"iptables -D FORWARD -i wlan0 -s 192.168.1.50 -m mac --mac-source 00:11:22:33:44:55 -j ACCEPT",
+		"iptables -D FORWARD -o wlan0 -d 192.168.1.50 -j ACCEPT",
 		"iptables -t nat -D CATS_PREROUTING -s 192.168.1.50 -m mac --mac-source 00:11:22:33:44:55 -j RETURN",
-		// Add rules
+		// Add rules (upload, download, nat)
 		"iptables -I FORWARD 1 -i wlan0 -s 192.168.1.50 -m mac --mac-source 00:11:22:33:44:55 -j ACCEPT",
+		"iptables -I FORWARD 1 -o wlan0 -d 192.168.1.50 -j ACCEPT",
 		"iptables -t nat -I CATS_PREROUTING 1 -s 192.168.1.50 -m mac --mac-source 00:11:22:33:44:55 -j RETURN",
-		// Block client
+		// Block client (upload, download, nat)
 		"iptables -D FORWARD -i wlan0 -s 192.168.1.50 -m mac --mac-source 00:11:22:33:44:55 -j ACCEPT",
+		"iptables -D FORWARD -o wlan0 -d 192.168.1.50 -j ACCEPT",
 		"iptables -t nat -D CATS_PREROUTING -s 192.168.1.50 -m mac --mac-source 00:11:22:33:44:55 -j RETURN",
 	}
 

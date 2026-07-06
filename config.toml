@@ -4,3 +4,10 @@ session_timeout = 3600
 idle_timeout = 900
 db_path = "catsplash.db"
 redirect_url = "http://192.168.10.1:8080/portal"
+wan_iface = "eth0"
+
+download_speed = "0"
+upload_speed = "0"
+
+admin_user = "admin"
+admin_pass = "catsplash"

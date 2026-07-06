@@ -30,6 +30,13 @@ func Open(path string) (*DB, error) {
 		return nil, fmt.Errorf("failed to execute schema: %w", err)
 	}
 
+	// Dynamic column migrations for traffic tracking
+	db.Exec("ALTER TABLE clients ADD COLUMN bytes_in INTEGER DEFAULT 0")
+	db.Exec("ALTER TABLE clients ADD COLUMN bytes_out INTEGER DEFAULT 0")
+	db.Exec("ALTER TABLE clients ADD COLUMN max_bytes INTEGER DEFAULT 0")
+	db.Exec("ALTER TABLE clients ADD COLUMN download_speed TEXT DEFAULT ''")
+	db.Exec("ALTER TABLE clients ADD COLUMN upload_speed TEXT DEFAULT ''")
+
 	return &DB{Conn: db}, nil
 }
 

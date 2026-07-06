@@ -17,6 +17,12 @@ type Config struct {
 	DBPath         string `toml:"db_path"`
 	RedirectURL    string `toml:"redirect_url"`
 	WanIface       string `toml:"wan_iface"`
+
+	DownloadSpeed string `toml:"download_speed"`
+	UploadSpeed   string `toml:"upload_speed"`
+
+	AdminUser string `toml:"admin_user"`
+	AdminPass string `toml:"admin_pass"`
 }
 
 // Load reads the configuration from a TOML file and overrides it with CLI flags.
@@ -29,6 +35,10 @@ func Load(path string, args []string) (*Config, error) {
 		DBPath:         "captive.db",
 		RedirectURL:    "http://192.168.1.1:8080/portal",
 		WanIface:       "eth0",
+		DownloadSpeed:  "0",
+		UploadSpeed:    "0",
+		AdminUser:      "admin",
+		AdminPass:      "catsplash",
 	}
 
 	if path != "" {

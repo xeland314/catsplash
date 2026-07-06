@@ -19,15 +19,18 @@ type Server struct {
 	db        *state.DB
 	fw        *firewall.Firewall
 	templates *template.Template
+	adminTmpl *template.Template
 }
 
 func New(cfg *config.Config, db *state.DB, fw *firewall.Firewall) *Server {
-	tmpl := template.Must(template.ParseFS(templateFS, "templates/*.html"))
+	tmpl := template.Must(template.ParseFS(templateFS, "templates/portal.html", "templates/success.html", "templates/error.html"))
+	adminTmpl := template.Must(template.ParseFS(templateFS, "templates/admin.html"))
 	return &Server{
 		cfg:       cfg,
 		db:        db,
 		fw:        fw,
 		templates: tmpl,
+		adminTmpl: adminTmpl,
 	}
 }
 
@@ -35,6 +38,7 @@ func (s *Server) Start() error {
 	mux := http.NewServeMux()
 
 	// Handlers
+	mux.HandleFunc("/admin", s.basicAuth(s.handleAdmin))
 	mux.HandleFunc("/portal", s.handlePortal)
 	mux.HandleFunc("/auth", s.handleAuth)
 	mux.HandleFunc("/", s.handleRedirect) // Catch-all for intercepcion

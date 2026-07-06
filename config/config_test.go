@@ -20,6 +20,10 @@ session_timeout = 7200
 idle_timeout = 1200
 db_path = "test.db"
 redirect_url = "http://localhost:9090/portal"
+download_speed = "5mbit"
+upload_speed = "2mbit"
+admin_user = "root"
+admin_pass = "secret"
 `
 	if _, err := tmpFile.Write([]byte(content)); err != nil {
 		t.Fatalf("failed to write to temp file: %v", err)

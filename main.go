@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -30,6 +31,8 @@ func main() {
 
 	// 3. Initialize firewall
 	fw := firewall.New(cfg.Iface, cfg.WanIface, nil)
+	fw.DownloadSpeed = cfg.DownloadSpeed
+	fw.UploadSpeed = cfg.UploadSpeed
 	if err := fw.Init(); err != nil {
 		log.Fatalf("Failed to initialize firewall: %v", err)
 	}
@@ -54,6 +57,47 @@ func main() {
 		return fw.BlockClient(mac, ip)
 	})
 	go reaper.Start(10 * time.Second)
+
+	// 5.5 Start Traffic Monitor
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		for range ticker.C {
+			stats, err := fw.QueryTrafficCounters()
+			if err != nil {
+				log.Printf("Error querying traffic counters: %v", err)
+				continue
+			}
+
+			// List authenticated clients to check quotas
+			clients, err := db.ListAuthenticated()
+			if err != nil {
+				log.Printf("Error listing authenticated clients: %v", err)
+				continue
+			}
+
+			for _, c := range clients {
+				stat, found := stats[strings.ToLower(c.MAC)]
+				if !found {
+					continue
+				}
+
+				// Update database
+				if err := db.UpdateTraffic(c.MAC, stat.BytesIn, stat.BytesOut); err != nil {
+					log.Printf("Error updating traffic for %s: %v", c.MAC, err)
+				}
+
+				// Check data limit
+				totalBytes := stat.BytesIn + stat.BytesOut
+				if c.MaxBytes > 0 && totalBytes >= c.MaxBytes {
+					log.Printf("Client %s (%s) exceeded data quota (%d >= %d bytes). Expiring session...", c.MAC, c.IP, totalBytes, c.MaxBytes)
+					if err := fw.BlockClient(c.MAC, c.IP); err != nil {
+						log.Printf("Error blocking client: %v", err)
+					}
+					db.Deauthenticate(c.MAC)
+				}
+			}
+		}
+	}()
 
 	// 6. Start Web Server
 	srv := server.New(cfg, db, fw)
