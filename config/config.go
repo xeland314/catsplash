@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
@@ -45,6 +46,9 @@ func Load(path string, args []string) (*Config, error) {
 		if _, err := os.Stat(path); err == nil {
 			if _, err := toml.DecodeFile(path, cfg); err != nil {
 				return nil, fmt.Errorf("failed to decode config file: %w", err)
+			}
+			if !filepath.IsAbs(cfg.DBPath) {
+				cfg.DBPath = filepath.Join(filepath.Dir(path), cfg.DBPath)
 			}
 		}
 	}

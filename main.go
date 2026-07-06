@@ -17,7 +17,11 @@ import (
 
 func main() {
 	// 1. Load configuration
-	cfg, err := config.Load("config.toml", os.Args[1:])
+	cfgPath := "config.toml"
+	if _, err := os.Stat("/opt/catsplash/config.toml"); err == nil {
+		cfgPath = "/opt/catsplash/config.toml"
+	}
+	cfg, err := config.Load(cfgPath, os.Args[1:])
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}

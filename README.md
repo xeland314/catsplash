@@ -1,49 +1,60 @@
 # Catsplash 🐱
 
-Catsplash es un portal cautivo ligero y eficiente escrito en Go, diseñado para gestionar el acceso a Internet en redes locales (WiFi/Ethernet) mediante la intercepción de tráfico HTTP y la gestión dinámica de reglas de firewall con `iptables`.
+> Catsplash es un portal cautivo ligero para Linux que permite abrir una red temporal, bloquear el acceso a Internet hasta que el usuario acepta los términos y liberar el tráfico de forma segura con Go, SQLite y iptables.
 
-## Características Principales
+![demo](assets/demo.svg)
 
-- **Intercepción Inteligente:** Redirige automáticamente el tráfico HTTP (puerto 80) al portal de bienvenida.
-- **Detección de CNA:** Compatible con los asistentes de conectividad (Captive Network Assistant) de Android e iOS.
-- **Gestión de Estado:** Utiliza SQLite para mantener un registro en tiempo real de los clientes y sus sesiones.
-- **Seguridad Robusta:** Incluye protección CSRF con nonces y bypass de NAT automático para usuarios autenticados (evita el signo `!`).
-- **Fail-Secure:** Limpieza automática de reglas de firewall al cerrar el programa.
-- **Session Reaper:** Expira sesiones automáticamente por tiempo total (absoluto) o por inactividad.
-- **Mínimas Dependencias:** Binario único con plantillas HTML embebidas.
+## Features
+- Portal cautivo compatible con el flujo de Captive Network Assistant de Android e iOS.
+- Gestión de sesiones y clientes con SQLite, expiración por tiempo absoluto e inactividad.
+- Herramienta de control `catsctl` para revisar estado, listar clientes y gestionar sesiones.
+- Instalador guiado con `setup.sh` que prepara hostapd, dnsmasq, reglas de firewall y la configuración del sistema.
 
-## Estructura del Proyecto
+## Architecture
 
-- `config/`: Carga de configuración (TOML y CLI).
-- `state/`: Persistencia en SQLite y lógica de sesiones.
-- `firewall/`: Manipulación de reglas `iptables`.
-- `server/`: Servidor HTTP, controladores y plantillas.
-- `docs/`: Documentación detallada de red, seguridad, arquitectura y [características comparativas](docs/features.md).
+```text
+Cliente Wi‑Fi ──> Punto de Acceso (hostapd) ──> Catsplash
+                           │                         │
+                           │                         ├─> Firewall (iptables)
+                           │                         ├─> Base de datos SQLite
+                           │                         └─> Portal web /auth
+```
 
-## Instalación y Uso
+## Requerimientos
+- Linux con privilegios de root.
+- Debian/Ubuntu recomendado para el asistente de instalación.
+- Dependencias del sistema: `hostapd`, `dnsmasq`, `iptables`, `gcc`, `make`, `sqlite3` y Go 1.26+.
+- Compilador compatible con CGO, ya que el driver de SQLite requiere compilación nativa.
 
-### Requisitos
-- Linux con `iptables`.
-- `gcc` instalado (para el driver de SQLite).
-- Go 1.26
-
-### Compilación
+## Instalación
 ```bash
+git clone https://github.com/xeland314/catsplash.git
+cd catsplash
 make build
+sudo ./setup.sh
 ```
 
-### Ejecución
+El build deja los binarios en la carpeta `bin/` y el instalador copia los artefactos a `/opt/catsplash`. Sigue los pasos que te indica setup.sh hasta el final. Recuerda que es muy probable que necesites lo básico en configuración de redes.
+
+## Uso
 ```bash
-sudo ./catsplash
+sudo ./bin/catsplash
+sudo ./bin/catsctl status
+sudo ./bin/catsctl list
 ```
 
-*Nota: Asegúrate de configurar correctamente `hostapd` y `dnsmasq` siguiendo las guías en la carpeta `docs/`.*
+![catsctl](assets/catsctl_example.jpg)
+![setup.sh](assets/setup.sh.jpg)
 
-## Pruebas
-El proyecto mantiene una política de tests co-localizados dentro de cada paquete.
-```bash
-make test
-```
+
+## Configuración
+El asistente crea un archivo de configuración en `/opt/catsplash/config.toml` y una base de datos en `/opt/catsplash/catsplash.db`. Si prefieres ajustar manualmente el entorno, puedes editar la configuración generada y reiniciar el servicio.
+
+## Performance
+No hay benchmarks públicos todavía. El diseño prioriza bajo consumo de recursos, uso de SQLite local y reglas de firewall simples para redes pequeñas y medianas.
+
+## Contribuir
+Consulta [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licencia
-Este proyecto es software libre bajo la licencia MIT.
+MIT

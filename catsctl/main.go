@@ -56,10 +56,10 @@ func main() {
 	// Find configuration file
 	cfgFile := *configPath
 	if cfgFile == "" {
-		if _, err := os.Stat("config.toml"); err == nil {
-			cfgFile = "config.toml"
-		} else if _, err := os.Stat("/opt/catsplash/config.toml"); err == nil {
+		if _, err := os.Stat("/opt/catsplash/config.toml"); err == nil {
 			cfgFile = "/opt/catsplash/config.toml"
+		} else if _, err := os.Stat("config.toml"); err == nil {
+			cfgFile = "config.toml"
 		}
 	}
 

@@ -14,9 +14,12 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$SCRIPT_DIR"
 INSTALL_DIR="/opt/catsplash"
 CONFIG_FILE="$INSTALL_DIR/config.toml"
 DB_FILE="$INSTALL_DIR/catsplash.db"
+BIN_DIR="$PROJECT_DIR/bin"
 
 # Dibujar logotipo
 print_logo() {
@@ -171,9 +174,13 @@ wizard() {
 
     # 5. Compilación del binario Catsplash y Catsctl
     echo -e "${BLUE}[5/6] Compilando Catsplash y Catsctl...${NC}"
-    if [ -f Makefile ]; then
+    if [ -f "$PROJECT_DIR/Makefile" ]; then
+        cd "$PROJECT_DIR" || {
+            echo -e "${RED}[ERROR] No se pudo acceder al directorio del proyecto.${NC}"
+            exit 1
+        }
         make build
-        if [ $? -eq 0 ] && [ -f catsplash ] && [ -f catsctl ]; then
+        if [ $? -eq 0 ] && [ -f "$BIN_DIR/catsplash" ] && [ -f "$BIN_DIR/catsctl" ]; then
             echo -e "${GREEN}[OK] Binarios compilados con éxito.${NC}\n"
         else
             echo -e "${RED}[ERROR] Falló la compilación. Verifique la instalación de Go y gcc.${NC}"
@@ -189,8 +196,8 @@ wizard() {
 
     # Crear directorio de instalación
     mkdir -p "$INSTALL_DIR"
-    cp catsplash "$INSTALL_DIR/"
-    cp catsctl "$INSTALL_DIR/"
+    install -m 0755 "$BIN_DIR/catsplash" "$INSTALL_DIR/catsplash"
+    install -m 0755 "$BIN_DIR/catsctl" "$INSTALL_DIR/catsctl"
     ln -sf "$INSTALL_DIR/catsctl" /usr/local/bin/catsctl
 
     # Crear archivo de configuración config.toml

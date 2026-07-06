@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -44,8 +45,26 @@ admin_pass = "secret"
 	if cfg.SessionTimeout != 7200 {
 		t.Errorf("expected session_timeout 7200, got %d", cfg.SessionTimeout)
 	}
-	if cfg.DBPath != "test.db" {
-		t.Errorf("expected db_path test.db, got %s", cfg.DBPath)
+	expectedDBPath := filepath.Join(filepath.Dir(tmpFile.Name()), "test.db")
+	if cfg.DBPath != expectedDBPath {
+		t.Errorf("expected db_path %s, got %s", expectedDBPath, cfg.DBPath)
+	}
+}
+
+func TestLoadResolvesRelativeDBPathFromConfigDir(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := dir + "/config.toml"
+	if err := os.WriteFile(cfgPath, []byte(`db_path = "state.db"`), 0o644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	cfg, err := Load(cfgPath, []string{})
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if cfg.DBPath != dir+"/state.db" {
+		t.Fatalf("expected DB path %s, got %s", dir+"/state.db", cfg.DBPath)
 	}
 }
 

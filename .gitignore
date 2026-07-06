@@ -1,5 +1,7 @@
 catsplash
 catsplash.db*
 server/test_server.db*
+/bin/
+catsctl/main
 
 go.sum

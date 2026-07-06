@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300" role="img" aria-label="Catsplash demo diagram">
+  <rect width="800" height="300" rx="16" fill="#111827"/>
+  <text x="400" y="48" text-anchor="middle" fill="#f9fafb" font-family="Arial, sans-serif" font-size="24">Catsplash demo</text>
+  <rect x="80" y="110" width="140" height="70" rx="10" fill="#3b82f6"/>
+  <text x="150" y="150" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="18">Cliente</text>
+  <rect x="330" y="110" width="140" height="70" rx="10" fill="#10b981"/>
+  <text x="400" y="150" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="18">Hotspot</text>
+  <rect x="580" y="110" width="140" height="70" rx="10" fill="#f59e0b"/>
+  <text x="650" y="150" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="18">Portal</text>
+  <line x1="220" y1="145" x2="330" y2="145" stroke="#f9fafb" stroke-width="3"/>
+  <line x1="470" y1="145" x2="580" y2="145" stroke="#f9fafb" stroke-width="3"/>
+  <text x="400" y="250" text-anchor="middle" fill="#d1d5db" font-family="Arial, sans-serif" font-size="16">Wi‑Fi + firewall + SQLite</text>
+</svg>
