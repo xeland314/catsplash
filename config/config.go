@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Config represents the operator's configuration for the captive portal.
@@ -64,5 +66,26 @@ func Load(path string, args []string) (*Config, error) {
 		return nil, err
 	}
 
+	if err := hashAdminPassword(cfg); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
+}
+
+// hashAdminPassword replaces the plaintext admin password with its bcrypt hash.
+// If the password is already a bcrypt hash (starts with "$2"), it is left as-is.
+func hashAdminPassword(cfg *Config) error {
+	if cfg.AdminPass == "" {
+		return nil
+	}
+	if strings.HasPrefix(cfg.AdminPass, "$2") {
+		return nil
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPass), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash admin password: %w", err)
+	}
+	cfg.AdminPass = string(hash)
+	return nil
 }

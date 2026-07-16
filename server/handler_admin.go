@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (s *Server) basicAuth(next http.HandlerFunc) http.HandlerFunc {
@@ -23,12 +25,10 @@ func (s *Server) basicAuth(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		userHash := sha256.Sum256([]byte(user))
-		passHash := sha256.Sum256([]byte(pass))
 		expectedUserHash := sha256.Sum256([]byte(s.cfg.AdminUser))
-		expectedPassHash := sha256.Sum256([]byte(s.cfg.AdminPass))
 
 		userOk := subtle.ConstantTimeCompare(userHash[:], expectedUserHash[:]) == 1
-		passOk := subtle.ConstantTimeCompare(passHash[:], expectedPassHash[:]) == 1
+		passOk := bcrypt.CompareHashAndPassword([]byte(s.cfg.AdminPass), []byte(pass)) == nil
 
 		if !userOk || !passOk {
 			s.requireAuth(w)
