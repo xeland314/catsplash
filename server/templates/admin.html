@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="csrf-token" content="{{$.CSRFToken}}">
 <title>Admin — Catsplash</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -60,14 +61,21 @@ tr:hover td{background:rgba(241,164,73,.03)}
 {{else}}∞{{end}}
 </td>
 <td class="actions">
-<a href="/admin?action=kick&mac={{.MAC}}" class="btn btn-kick" onclick="return confirm('Kick {{.MAC}}?')">Kick</a>
-<form method="get" action="/admin" style="display:inline">
+<form method="post" action="/admin" style="display:inline" onsubmit="return confirm('Kick {{.MAC}}?')">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+<input type="hidden" name="action" value="kick">
+<input type="hidden" name="mac" value="{{.MAC}}">
+<button type="submit" class="btn btn-kick">Kick</button>
+</form>
+<form method="post" action="/admin" style="display:inline">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
 <input type="hidden" name="action" value="extend">
 <input type="hidden" name="mac" value="{{.MAC}}">
 <input type="number" name="minutes" value="30" min="1" class="mini-input" title="Minutos">
 <button type="submit" class="btn btn-extend">Ext</button>
 </form>
-<form method="get" action="/admin" style="display:inline">
+<form method="post" action="/admin" style="display:inline">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
 <input type="hidden" name="action" value="limit">
 <input type="hidden" name="mac" value="{{.MAC}}">
 <input type="number" name="mb" value="500" min="0" class="mini-input" title="MB">
@@ -100,7 +108,8 @@ tr:hover td{background:rgba(241,164,73,.03)}
 <td class="bytes">{{.Total}}</td>
 <td class="bytes">{{if ne .QuotaLimit "∞"}}{{.QuotaUsed}}/{{.QuotaLimit}}{{else}}∞{{end}}</td>
 <td class="actions">
-<form method="get" action="/admin" style="display:inline">
+<form method="post" action="/admin" style="display:inline">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
 <input type="hidden" name="action" value="limit">
 <input type="hidden" name="mac" value="{{.MAC}}">
 <input type="number" name="mb" value="500" min="0" class="mini-input" title="MB">
