@@ -8,3 +8,5 @@ go.sum
 test_admin*
 lopdp.md
 catsplash-docs/
+test_csrf*
+test_debug*
