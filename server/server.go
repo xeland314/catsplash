@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/xeland314/catsplash/config"
 	"github.com/xeland314/catsplash/firewall"
@@ -20,6 +21,7 @@ type Server struct {
 	fw        *firewall.Firewall
 	templates *template.Template
 	adminTmpl *template.Template
+	rl        *RateLimiter
 }
 
 func New(cfg *config.Config, db *state.DB, fw *firewall.Firewall) *Server {
@@ -31,6 +33,7 @@ func New(cfg *config.Config, db *state.DB, fw *firewall.Firewall) *Server {
 		fw:        fw,
 		templates: tmpl,
 		adminTmpl: adminTmpl,
+		rl:        NewRateLimiter(5, 60*time.Second),
 	}
 }
 
@@ -40,7 +43,7 @@ func (s *Server) Start() error {
 	// Handlers
 	mux.HandleFunc("/admin", s.basicAuth(s.handleAdmin))
 	mux.HandleFunc("/portal", s.handlePortal)
-	mux.HandleFunc("/auth", s.handleAuth)
+	mux.Handle("/auth", s.rl.Middleware(http.HandlerFunc(s.handleAuth)))
 	mux.HandleFunc("/", s.handleRedirect) // Catch-all for intercepcion
 
 	return http.ListenAndServe(fmt.Sprintf(":%d", s.cfg.PortalPort), s.logMiddleware(mux))
