@@ -74,6 +74,11 @@ func (s *Server) handleAdminAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !isValidMAC(mac) {
+		http.Error(w, "Invalid mac format", http.StatusBadRequest)
+		return
+	}
+
 	switch action {
 	case "kick":
 		client, err := s.db.GetClient(mac)

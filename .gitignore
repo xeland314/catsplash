@@ -10,3 +10,6 @@ lopdp.md
 catsplash-docs/
 test_csrf*
 test_debug*
+test_amp*
+test_inject*
+test_valid*

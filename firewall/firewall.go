@@ -38,3 +38,8 @@ func New(iface string, wanIface string, exec Executor) *Firewall {
 		UploadSpeed:   "0",
 	}
 }
+
+// SetExecutor replaces the command executor (useful for testing).
+func (f *Firewall) SetExecutor(exec Executor) {
+	f.exec = exec
+}
