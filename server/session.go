@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -41,4 +42,10 @@ func generateNonce() string {
 	b := make([]byte, 16)
 	rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// maskMAC returns a truncated SHA-256 hash of the MAC address for safe logging.
+func maskMAC(mac string) string {
+	h := sha256.Sum256([]byte(mac))
+	return hex.EncodeToString(h[:4])
 }
