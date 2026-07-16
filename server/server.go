@@ -25,7 +25,7 @@ type Server struct {
 }
 
 func New(cfg *config.Config, db *state.DB, fw *firewall.Firewall) *Server {
-	tmpl := template.Must(template.ParseFS(templateFS, "templates/portal.html", "templates/success.html", "templates/error.html"))
+	tmpl := template.Must(template.ParseFS(templateFS, "templates/portal.html", "templates/success.html", "templates/error.html", "templates/privacy.html"))
 	adminTmpl := template.Must(template.ParseFS(templateFS, "templates/admin.html"))
 	return &Server{
 		cfg:       cfg,
@@ -44,6 +44,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/admin", s.basicAuth(s.handleAdmin))
 	mux.HandleFunc("/portal", s.handlePortal)
 	mux.Handle("/auth", s.rl.Middleware(http.HandlerFunc(s.handleAuth)))
+	mux.HandleFunc("/privacy", s.handlePrivacy)
 	mux.HandleFunc("/", s.handleRedirect) // Catch-all for intercepcion
 
 	return http.ListenAndServe(fmt.Sprintf(":%d", s.cfg.PortalPort), s.logMiddleware(mux))

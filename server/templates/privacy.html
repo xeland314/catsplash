@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Política de Privacidad — Catsplash</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #2e1f14;
+        --text: #f9e6c6;
+        --sub: #f1a449;
+        --footer: #8a6040;
+        --border: #5c3a20;
+        --card: rgba(61, 37, 16, 0.7);
+        --window: #1e1208;
+        --header: #4a2e18;
+        --icon: rgba(92, 58, 32, 0.5);
+      }
+
+      body {
+        font-family: "Inconsolata", monospace;
+        background-color: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem 1rem;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 70% 60% at 50% 40%,
+          rgba(241, 164, 73, 0.07) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .card {
+        position: relative;
+        z-index: 1;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        width: 90%;
+        max-width: 640px;
+        overflow: hidden;
+        box-shadow:
+          0 8px 40px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(241, 164, 73, 0.05);
+        animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .window-bar {
+        background: var(--header);
+        border-bottom: 1px solid var(--border);
+        padding: 0.55rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--icon);
+        border: 1px solid var(--border);
+      }
+      .dot:first-child {
+        background: rgba(241, 164, 73, 0.4);
+      }
+      .window-title {
+        font-size: 0.7rem;
+        color: var(--footer);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .body {
+        padding: 2rem 1.8rem;
+        background: var(--window);
+      }
+
+      .md-content h1 {
+        font-family: "Playfair Display", serif;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--sub);
+        margin-bottom: 0.4rem;
+      }
+      .md-content h2 {
+        font-family: "Playfair Display", serif;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--sub);
+        margin-top: 1.8rem;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .md-content h3 {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-top: 1.2rem;
+        margin-bottom: 0.3rem;
+      }
+      .md-content p {
+        font-size: 0.85rem;
+        line-height: 1.7;
+        color: var(--text);
+        margin-bottom: 0.9rem;
+        opacity: 0.88;
+      }
+      .md-content blockquote {
+        border-left: 3px solid var(--sub);
+        padding: 0.6rem 1rem;
+        margin: 1rem 0;
+        background: rgba(241, 164, 73, 0.06);
+        border-radius: 0 2px 2px 0;
+        font-size: 0.82rem;
+        color: var(--footer);
+        line-height: 1.6;
+      }
+      .md-content blockquote p {
+        margin-bottom: 0;
+        color: var(--footer);
+      }
+      .md-content strong {
+        color: var(--sub);
+        font-weight: 700;
+      }
+      .md-content a {
+        color: var(--sub);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(241, 164, 73, 0.3);
+        transition: border-color 0.2s;
+      }
+      .md-content a:hover {
+        border-bottom-color: var(--sub);
+      }
+      .md-content ul,
+      .md-content ol {
+        font-size: 0.85rem;
+        line-height: 1.7;
+        color: var(--text);
+        margin: 0.5rem 0 1rem 1.4rem;
+        opacity: 0.88;
+      }
+      .md-content li {
+        margin-bottom: 0.3rem;
+      }
+      .md-content hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 1.2rem 0;
+      }
+      .md-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.8rem 0 1.2rem;
+        font-size: 0.82rem;
+      }
+      .md-content th {
+        text-align: left;
+        padding: 0.5rem 0.7rem;
+        background: rgba(241, 164, 73, 0.08);
+        border: 1px solid var(--border);
+        color: var(--sub);
+        font-weight: 700;
+      }
+      .md-content td {
+        padding: 0.5rem 0.7rem;
+        border: 1px solid var(--border);
+        opacity: 0.88;
+      }
+      .md-content code {
+        font-size: 0.82rem;
+        background: rgba(241, 164, 73, 0.1);
+        padding: 0.1em 0.35em;
+        border-radius: 2px;
+        color: var(--sub);
+      }
+
+      .back-link {
+        display: block;
+        width: 100%;
+        background: var(--header);
+        border: 1px solid var(--border);
+        color: var(--sub);
+        font-family: "Inconsolata", monospace;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.7rem 1rem;
+        border-radius: 2px;
+        text-decoration: none;
+        text-align: center;
+        margin-top: 1.8rem;
+        transition:
+          background 0.2s,
+          color 0.2s,
+          box-shadow 0.2s;
+      }
+      .back-link:hover {
+        background: #5c3a20;
+        color: var(--text);
+        box-shadow: 0 0 0 1px var(--sub) inset;
+      }
+
+      .footer-note {
+        margin-top: 1.3rem;
+        font-size: 0.68rem;
+        color: var(--footer);
+        letter-spacing: 0.06em;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="window-bar">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <span class="window-title">política de privacidad</span>
+      </div>
+      <div class="body">
+        <div class="md-content">{{.Content}}</div>
+        <a href="/portal" class="back-link">← volver al portal</a>
+        <div class="footer-note">catsplash &mdash; portal cautivo</div>
+      </div>
+    </div>
+  </body>
+</html>
