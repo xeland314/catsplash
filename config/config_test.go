@@ -3,7 +3,10 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestLoad(t *testing.T) {
@@ -93,5 +96,110 @@ func TestLoadOverride(t *testing.T) {
 	}
 	if cfg.PortalPort != 7070 {
 		t.Errorf("expected overriden port 7070, got %d", cfg.PortalPort)
+	}
+}
+
+func TestAdminPassIsHashedAfterLoad(t *testing.T) {
+	cfg, err := Load("", []string{})
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if cfg.AdminPass == "" {
+		t.Fatal("expected AdminPass to be set")
+	}
+	if cfg.AdminPass == "catsplash" {
+		t.Error("AdminPass must not be stored as plaintext")
+	}
+	if !strings.HasPrefix(cfg.AdminPass, "$2") {
+		t.Errorf("AdminPass should be a bcrypt hash (starts with $2), got: %s", cfg.AdminPass[:20])
+	}
+}
+
+func TestAdminPassAlreadyHashedIsNotRehashed(t *testing.T) {
+	original, err := bcrypt.GenerateFromPassword([]byte("mypassword"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatalf("failed to generate bcrypt hash: %v", err)
+	}
+
+	tmpFile, err := os.CreateTemp("", "config*.toml")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	content := `
+admin_user = "admin"
+admin_pass = "` + string(original) + `"
+`
+	if _, err := tmpFile.Write([]byte(content)); err != nil {
+		t.Fatalf("failed to write to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	cfg, err := Load(tmpFile.Name(), []string{})
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if cfg.AdminPass != string(original) {
+		t.Error("pre-hashed password should not be re-hashed")
+	}
+}
+
+func TestAdminPassPlaintextIsHashed(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "config*.toml")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	content := `
+admin_user = "admin"
+admin_pass = "catsplash"
+`
+	if _, err := tmpFile.Write([]byte(content)); err != nil {
+		t.Fatalf("failed to write to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	cfg, err := Load(tmpFile.Name(), []string{})
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if cfg.AdminPass == "catsplash" {
+		t.Error("plaintext password should have been hashed")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(cfg.AdminPass), []byte("catsplash"))
+	if err != nil {
+		t.Errorf("hashed password should verify against original plaintext: %v", err)
+	}
+}
+
+func TestEmptyAdminPassIsNotHashed(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "config*.toml")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	content := `
+admin_user = "admin"
+admin_pass = ""
+`
+	if _, err := tmpFile.Write([]byte(content)); err != nil {
+		t.Fatalf("failed to write to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	cfg, err := Load(tmpFile.Name(), []string{})
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if cfg.AdminPass != "" {
+		t.Error("empty password should remain empty")
 	}
 }
