@@ -13,6 +13,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type testMockExecutor struct {
+	Commands []string
+}
+
+func (m *testMockExecutor) Execute(name string, arg ...string) ([]byte, error) {
+	cmd := name + " " + strings.Join(arg, " ")
+	m.Commands = append(m.Commands, cmd)
+	return []byte(""), nil
+}
+
 func TestBasicAuthUsesBcryptComparison(t *testing.T) {
 	db, _ := state.Open("test_admin.db")
 	defer os.Remove("test_admin.db")
@@ -336,4 +346,225 @@ func hashForTest(t *testing.T, password string) string {
 		t.Fatalf("failed to hash test password: %v", err)
 	}
 	return string(hash)
+}
+
+func TestAdminRejectsShellInjectionViaMAC(t *testing.T) {
+	db, _ := state.Open("test_inject.db")
+	defer os.Remove("test_inject.db")
+
+	mock := &testMockExecutor{}
+	fw := firewall.New("wlan0", "eth0", nil)
+	fw.SetExecutor(mock)
+	hash := hashForTest(t, "pass")
+	cfg := &config.Config{PortalPort: 8100, AdminUser: "admin", AdminPass: hash}
+	srv := New(cfg, db, fw)
+
+	payloads := []struct {
+		name string
+		mac  string
+	}{
+		{"semicolon", "AA:BB:CC:DD:EE:FF; rm -rf /"},
+		{"pipe", "AA:BB:CC:DD:EE:FF| cat /etc/passwd"},
+		{"backtick", "AA:BB:CC:DD:EE:FF`id`"},
+		{"dollar parens", "AA:BB:CC:DD:EE:FF$(id)"},
+		{"newline", "AA:BB:CC:DD:EE:FF\n/etc/passwd"},
+		{"null byte", "AA:BB:CC:DD:EE:FF\x00AAAA"},
+		{"sql inject", "AA:BB:CC:DD:EE' OR 1=1--"},
+		{"double quote", "AA:BB:CC:DD:EE\" OR \"1\"=\"1"},
+		{"pure injection", "; echo pwned"},
+		{"pure pipe", "| cat /etc/shadow"},
+	}
+
+	for _, p := range payloads {
+		t.Run(p.name, func(t *testing.T) {
+			mock.Commands = nil
+
+			// Insert a real client so GetClient succeeds if validation is bypassed
+			db.UpsertClient("00:11:22:33:44:55", "192.168.10.5")
+			db.Authenticate("00:11:22:33:44:55", "192.168.10.5")
+
+			// Get a valid CSRF token
+			getReq, _ := http.NewRequest("GET", "/admin", nil)
+			getRR := httptest.NewRecorder()
+			srv.handleAdmin(getRR, getReq)
+			var csrfToken string
+			for _, c := range getRR.Result().Cookies() {
+				if c.Name == "catsplash_admin_csrf" {
+					csrfToken = c.Value
+				}
+			}
+
+			// POST with injected MAC
+			body := "action=kick&mac=" + p.mac + "&csrf_token=" + csrfToken
+			req, _ := http.NewRequest("POST", "/admin", strings.NewReader(body))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.AddCookie(&http.Cookie{Name: "catsplash_admin_csrf", Value: csrfToken})
+			rr := httptest.NewRecorder()
+			srv.handleAdmin(rr, req)
+
+			if rr.Code != http.StatusBadRequest {
+				t.Errorf("injection %q: expected 400, got %d", p.mac, rr.Code)
+			}
+
+			// Verify no iptables commands were executed with the malicious input
+			for _, cmd := range mock.Commands {
+				if strings.Contains(cmd, p.mac) {
+					t.Errorf("injection %q leaked to iptables: %s", p.mac, cmd)
+				}
+			}
+		})
+	}
+}
+
+func TestAdminRejectsNonHexMAC(t *testing.T) {
+	db, _ := state.Open("test_inject2.db")
+	defer os.Remove("test_inject2.db")
+
+	mock := &testMockExecutor{}
+	fw := firewall.New("wlan0", "eth0", nil)
+	fw.SetExecutor(mock)
+	hash := hashForTest(t, "pass")
+	cfg := &config.Config{PortalPort: 8101, AdminUser: "admin", AdminPass: hash}
+	srv := New(cfg, db, fw)
+
+	badMACs := []string{
+		"GG:HH:II:JJ:KK:LL",
+		"not-a-mac",
+		"AAAA",
+		"AA:BB:CC:DD:EE",       // too short
+		"AA:BB:CC:DD:EE:FF:00", // too long
+	}
+
+	for _, mac := range badMACs {
+		t.Run(mac, func(t *testing.T) {
+			mock.Commands = nil
+
+			getReq, _ := http.NewRequest("GET", "/admin", nil)
+			getRR := httptest.NewRecorder()
+			srv.handleAdmin(getRR, getReq)
+			var csrfToken string
+			for _, c := range getRR.Result().Cookies() {
+				if c.Name == "catsplash_admin_csrf" {
+					csrfToken = c.Value
+				}
+			}
+
+			body := "action=kick&mac=" + mac + "&csrf_token=" + csrfToken
+			req, _ := http.NewRequest("POST", "/admin", strings.NewReader(body))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.AddCookie(&http.Cookie{Name: "catsplash_admin_csrf", Value: csrfToken})
+			rr := httptest.NewRecorder()
+			srv.handleAdmin(rr, req)
+
+			if rr.Code != http.StatusBadRequest {
+				t.Errorf("bad MAC %q: expected 400, got %d", mac, rr.Code)
+			}
+			if len(mock.Commands) > 0 {
+				t.Errorf("bad MAC %q: iptables commands were executed", mac)
+			}
+		})
+	}
+}
+
+func TestAdminAcceptsValidMAC(t *testing.T) {
+	db, _ := state.Open("test_valid_mac.db")
+	defer os.Remove("test_valid_mac.db")
+
+	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5")
+	db.Authenticate("AA:BB:CC:DD:EE:FF", "192.168.10.5")
+
+	mock := &testMockExecutor{}
+	fw := firewall.New("wlan0", "eth0", nil)
+	fw.SetExecutor(mock)
+	hash := hashForTest(t, "pass")
+	cfg := &config.Config{PortalPort: 8102, AdminUser: "admin", AdminPass: hash}
+	srv := New(cfg, db, fw)
+
+	getReq, _ := http.NewRequest("GET", "/admin", nil)
+	getRR := httptest.NewRecorder()
+	srv.handleAdmin(getRR, getReq)
+	var csrfToken string
+	for _, c := range getRR.Result().Cookies() {
+		if c.Name == "catsplash_admin_csrf" {
+			csrfToken = c.Value
+		}
+	}
+
+	body := "action=kick&mac=AA:BB:CC:DD:EE:FF&csrf_token=" + csrfToken
+	req, _ := http.NewRequest("POST", "/admin", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "catsplash_admin_csrf", Value: csrfToken})
+	rr := httptest.NewRecorder()
+	srv.handleAdmin(rr, req)
+
+	if rr.Code != http.StatusFound {
+		t.Errorf("valid MAC: expected 302 redirect, got %d", rr.Code)
+	}
+	if len(mock.Commands) == 0 {
+		t.Error("valid MAC: expected iptables commands to be executed")
+	}
+}
+
+func TestFormParserNeutralizesAmpersandPayloads(t *testing.T) {
+	db, _ := state.Open("test_amp_neutralize.db")
+	defer os.Remove("test_amp_neutralize.db")
+
+	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5")
+	db.Authenticate("AA:BB:CC:DD:EE:FF", "192.168.10.5")
+
+	mock := &testMockExecutor{}
+	fw := firewall.New("wlan0", "eth0", nil)
+	fw.SetExecutor(mock)
+	hash := hashForTest(t, "pass")
+	cfg := &config.Config{PortalPort: 8103, AdminUser: "admin", AdminPass: hash}
+	srv := New(cfg, db, fw)
+
+	getReq, _ := http.NewRequest("GET", "/admin", nil)
+	getRR := httptest.NewRecorder()
+	srv.handleAdmin(getRR, getReq)
+	var csrfToken string
+	for _, c := range getRR.Result().Cookies() {
+		if c.Name == "catsplash_admin_csrf" {
+			csrfToken = c.Value
+		}
+	}
+
+	// && contains & which is the form delimiter, so ParseForm splits it:
+	// mac=AA:BB:CC:DD:EE:FF  then  " whoami" as a separate key
+	t.Run("double amp is split by form parser", func(t *testing.T) {
+		mock.Commands = nil
+		body := "action=kick&mac=AA:BB:CC:DD:EE:FF&& whoami&csrf_token=" + csrfToken
+		req, _ := http.NewRequest("POST", "/admin", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(&http.Cookie{Name: "catsplash_admin_csrf", Value: csrfToken})
+		rr := httptest.NewRecorder()
+		srv.handleAdmin(rr, req)
+
+		if rr.Code != http.StatusFound {
+			t.Errorf("expected 302, got %d", rr.Code)
+		}
+		for _, cmd := range mock.Commands {
+			if strings.Contains(cmd, "whoami") {
+				t.Errorf("injection leaked to iptables: %s", cmd)
+			}
+		}
+	})
+
+	// || does NOT contain & so it stays in the MAC field and is rejected by isValidMAC
+	t.Run("double pipe stays in MAC field and is rejected", func(t *testing.T) {
+		mock.Commands = nil
+		body := "action=kick&mac=AA:BB:CC:DD:EE:FF|| reboot&csrf_token=" + csrfToken
+		req, _ := http.NewRequest("POST", "/admin", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(&http.Cookie{Name: "catsplash_admin_csrf", Value: csrfToken})
+		rr := httptest.NewRecorder()
+		srv.handleAdmin(rr, req)
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 (rejected by MAC validation), got %d", rr.Code)
+		}
+		if len(mock.Commands) > 0 {
+			t.Error("iptables commands were executed with invalid MAC")
+		}
+	})
 }
