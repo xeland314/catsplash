@@ -4,7 +4,6 @@ server/test_server.db*
 /bin/
 catsctl/main
 catsctl/main.exe
-go.sum
 test_admin*
 lopdp.md
 catsplash-docs/
