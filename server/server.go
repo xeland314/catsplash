@@ -26,7 +26,16 @@ type Server struct {
 
 func New(cfg *config.Config, db *state.DB, fw *firewall.Firewall) *Server {
 	tmpl := template.Must(template.ParseFS(templateFS, "templates/portal.html", "templates/success.html", "templates/error.html", "templates/privacy.html"))
-	adminTmpl := template.Must(template.ParseFS(templateFS, "templates/admin.html"))
+
+	adminFuncMap := template.FuncMap{
+		"formatTime": func(ts int64) string {
+			if ts == 0 {
+				return "—"
+			}
+			return time.Unix(ts, 0).Format("2006-01-02 15:04:05")
+		},
+	}
+	adminTmpl := template.Must(template.New("templates/admin.html").Funcs(adminFuncMap).ParseFS(templateFS, "templates/admin.html"))
 	return &Server{
 		cfg:       cfg,
 		db:        db,
@@ -45,6 +54,8 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/portal", s.handlePortal)
 	mux.Handle("/auth", s.rl.Middleware(http.HandlerFunc(s.handleAuth)))
 	mux.HandleFunc("/privacy", s.handlePrivacy)
+	mux.Handle("/data-request", s.rl.Middleware(http.HandlerFunc(s.handleDataRequest)))
+	mux.Handle("/data-deletion", s.rl.Middleware(http.HandlerFunc(s.handleDataDeletion)))
 	mux.HandleFunc("/", s.handleRedirect) // Catch-all for intercepcion
 
 	return http.ListenAndServe(fmt.Sprintf(":%d", s.cfg.PortalPort), s.logMiddleware(mux))

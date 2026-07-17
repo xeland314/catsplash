@@ -3,6 +3,8 @@ package server
 import (
 	"log"
 	"net/http"
+
+	"github.com/xeland314/catsplash/state"
 )
 
 func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
@@ -17,12 +19,14 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("Auth failed: missing cookie 'catsplash_nonce' for IP %s", r.RemoteAddr)
+		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "missing_cookie")
 		s.renderError(w, "Sesión inválida (falta cookie). Por favor, habilita las cookies e intenta de nuevo.")
 		return
 	}
 
 	if cookie.Value != formNonce {
 		log.Printf("Auth failed: nonce mismatch for IP %s", r.RemoteAddr)
+		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "nonce_mismatch")
 		s.renderError(w, "Sesión inválida (mismatch). Por favor, recarga la página e intenta de nuevo.")
 		return
 	}
@@ -31,6 +35,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	consent := r.FormValue("consent") == "true"
 	if !consent {
 		log.Printf("Auth failed: no consent for IP %s", r.RemoteAddr)
+		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "no_consent")
 		s.renderError(w, "Debes aceptar la política de privacidad para conectarte.")
 		return
 	}
@@ -62,7 +67,15 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Store session token for ARCO+ data access
+	if err := s.db.SetSessionToken(mac, cookie.Value); err != nil {
+		log.Printf("Auth failed: SetSessionToken error for %s: %v", maskMAC(mac), err)
+	}
+
 	log.Printf("Auth success for %s", maskMAC(mac))
+
+	// Audit trail — LOPDP traceability
+	s.db.LogAuditEvent(state.AuditAuthSuccess, maskMAC(mac), ip, "session_started")
 
 	// Success
 	data := struct {

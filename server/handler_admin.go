@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/xeland314/catsplash/state"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -151,6 +152,12 @@ func (s *Server) handleAdminPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auditEvents, err := s.db.ListAuditEvents(50)
+	if err != nil {
+		http.Error(w, "Error listing audit events", http.StatusInternalServerError)
+		return
+	}
+
 	activeClients := make([]*clientView, 0)
 	pendingClients := make([]*clientView, 0)
 	now := time.Now().Unix()
@@ -202,12 +209,14 @@ func (s *Server) handleAdminPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Active    []*clientView
-		Pending   []*clientView
-		CSRFToken string
+		Active     []*clientView
+		Pending    []*clientView
+		AuditLog   []*state.AuditEvent
+		CSRFToken  string
 	}{
 		Active:    activeClients,
 		Pending:   pendingClients,
+		AuditLog:  auditEvents,
 		CSRFToken: nonce,
 	}
 
