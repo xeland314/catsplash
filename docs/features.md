@@ -15,6 +15,7 @@ Este documento resume las capacidades actuales del proyecto y su alcance real.
 - Anonimización de MACs en logs del sistema (SHA-256 truncado).
 - Rate limiting por IP en endpoints de autenticación y ARCO+.
 - Política de privacidad accesible desde el portal (`/privacy`).
+- CI/CD automatizado: build, test, vet, gosec (security scan), lint, LOPDP compliance check.
 
 ## Cumplimiento LOPDP
 - Consentimiento explícito con checkbox + validación backend + timestamp.

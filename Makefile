@@ -16,6 +16,15 @@ test:
 clean:
 	rm -rf $(BIN_DIR) *.db
 
+# Security and compliance checks
+gosec:
+	gosec -exclude-generated ./...
+
+lopdp-check:
+	bash .github/scripts/lopdp-check.sh
+
+security: gosec lopdp-check
+
 run: build
 	sudo ./$(BINARY)
 

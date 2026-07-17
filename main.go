@@ -52,12 +52,12 @@ func main() {
 		portalIP = u.Hostname()
 	}
 	if err := fw.SetupRedirect(portalIP, cfg.PortalPort); err != nil {
-		log.Printf("Warning: failed to setup redirect to %s: %v", portalIP, err)
+		log.Printf("Warning: failed to setup redirect to %s: %v", portalIP, err) // lopdp:ignore — portalIP is config, not user PII
 	}
 
 	// 5. Start Session Reaper
 	reaper := state.NewReaper(db, cfg.SessionTimeout, cfg.IdleTimeout, func(mac, ip string) error {
-		log.Printf("Expiring session for %s (%s)", mac, ip)
+		log.Printf("Expiring session for %s (%s)", state.MaskMAC(mac), state.MaskIP(ip))
 		return fw.BlockClient(mac, ip)
 	})
 	go reaper.Start(10 * time.Second)
@@ -86,14 +86,14 @@ func main() {
 				}
 
 				// Update database
-				if err := db.UpdateTraffic(c.MAC, stat.BytesIn, stat.BytesOut); err != nil {
-					log.Printf("Error updating traffic for %s: %v", c.MAC, err)
-				}
+			if err := db.UpdateTraffic(c.MAC, stat.BytesIn, stat.BytesOut); err != nil {
+				log.Printf("Error updating traffic for %s: %v", state.MaskMAC(c.MAC), err)
+			}
 
-				// Check data limit
-				totalBytes := stat.BytesIn + stat.BytesOut
-				if c.MaxBytes > 0 && totalBytes >= c.MaxBytes {
-					log.Printf("Client %s (%s) exceeded data quota (%d >= %d bytes). Expiring session...", c.MAC, c.IP, totalBytes, c.MaxBytes)
+			// Check data limit
+			totalBytes := stat.BytesIn + stat.BytesOut
+			if c.MaxBytes > 0 && totalBytes >= c.MaxBytes {
+				log.Printf("Client %s (%s) exceeded data quota (%d >= %d bytes). Expiring session...", state.MaskMAC(c.MAC), state.MaskIP(c.IP), totalBytes, c.MaxBytes)
 					if err := fw.BlockClient(c.MAC, c.IP); err != nil {
 						log.Printf("Error blocking client: %v", err)
 					}

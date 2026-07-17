@@ -86,17 +86,17 @@ func main() {
 		listClients(db, cfg.SessionTimeout, cfg.IdleTimeout)
 	case "auth":
 		if len(args) < 3 {
-			log.Fatalf("Usage: catsctl auth <mac> <ip>")
+			log.Fatalf("Usage: catsctl auth <mac> <ip>") // lopdp:ignore — usage string, not actual data
 		}
 		authClient(db, fw, args[1], args[2])
 	case "kick":
 		if len(args) < 2 {
-			log.Fatalf("Usage: catsctl kick <mac>")
+			log.Fatalf("Usage: catsctl kick <mac>") // lopdp:ignore — usage string, not actual data
 		}
 		kickClient(db, fw, args[1])
 	case "extend":
 		if len(args) < 3 {
-			log.Fatalf("Usage: catsctl extend <mac> <minutes>")
+			log.Fatalf("Usage: catsctl extend <mac> <minutes>") // lopdp:ignore — usage string, not actual data
 		}
 		var minutes int
 		if _, err := fmt.Sscanf(args[2], "%d", &minutes); err != nil || minutes <= 0 {
@@ -105,7 +105,7 @@ func main() {
 		extendClient(db, args[1], minutes)
 	case "limit":
 		if len(args) < 3 {
-			log.Fatalf("Usage: catsctl limit <mac> <quota_mb>")
+			log.Fatalf("Usage: catsctl limit <mac> <quota_mb>") // lopdp:ignore — usage string, not actual data
 		}
 		var mb int64
 		if _, err := fmt.Sscanf(args[2], "%d", &mb); err != nil || mb < 0 {
@@ -114,7 +114,7 @@ func main() {
 		limitClient(db, args[1], mb)
 	case "band":
 		if len(args) < 4 {
-			log.Fatalf("Usage: catsctl band <mac> <download_speed> <upload_speed>")
+			log.Fatalf("Usage: catsctl band <mac> <download_speed> <upload_speed>") // lopdp:ignore — usage string, not actual data
 		}
 		bandClient(db, fw, args[1], args[2], args[3])
 	default:
@@ -229,7 +229,7 @@ func authClient(db *state.DB, fw *firewall.Firewall, mac, ip string) {
 		log.Fatalf("Error applying firewall rule: %v", err)
 	}
 
-	fmt.Printf("Manually authorized client %s (%s) successfully.\n", mac, ip)
+	fmt.Printf("Manually authorized client %s successfully.\n", state.MaskMAC(mac))
 }
 
 func kickClient(db *state.DB, fw *firewall.Firewall, mac string) {
@@ -238,7 +238,7 @@ func kickClient(db *state.DB, fw *firewall.Firewall, mac string) {
 		log.Fatalf("Error querying client: %v", err)
 	}
 	if client == nil {
-		log.Fatalf("Client with MAC %s not found in database.", mac)
+		log.Fatalf("Client with MAC %s not found in database.", state.MaskMAC(mac))
 	}
 
 	// Deauthenticate in DB
@@ -251,7 +251,7 @@ func kickClient(db *state.DB, fw *firewall.Firewall, mac string) {
 		log.Fatalf("Error removing firewall rule: %v", err)
 	}
 
-	fmt.Printf("Manually kicked client %s (%s) successfully.\n", mac, client.IP)
+	fmt.Printf("Manually kicked client %s successfully.\n", state.MaskMAC(mac))
 }
 
 func extendClient(db *state.DB, mac string, minutes int) {
@@ -260,10 +260,10 @@ func extendClient(db *state.DB, mac string, minutes int) {
 		log.Fatalf("Error querying client: %v", err)
 	}
 	if client == nil {
-		log.Fatalf("Client with MAC %s not found in database.", mac)
+		log.Fatalf("Client with MAC %s not found in database.", state.MaskMAC(mac))
 	}
 	if client.State != state.StateAuthenticated {
-		log.Fatalf("Client %s is not authenticated.", mac)
+		log.Fatalf("Client %s is not authenticated.", state.MaskMAC(mac))
 	}
 
 	// Add minutes to connected_at
@@ -273,7 +273,7 @@ func extendClient(db *state.DB, mac string, minutes int) {
 		log.Fatalf("Error updating connection time in database: %v", err)
 	}
 
-	fmt.Printf("Extended session of client %s by %d minutes successfully.\n", mac, minutes)
+	fmt.Printf("Extended session of client %s by %d minutes successfully.\n", state.MaskMAC(mac), minutes)
 }
 
 func limitClient(db *state.DB, mac string, mb int64) {
@@ -282,7 +282,7 @@ func limitClient(db *state.DB, mac string, mb int64) {
 		log.Fatalf("Error querying client: %v", err)
 	}
 	if client == nil {
-		log.Fatalf("Client with MAC %s not found in database.", mac)
+		log.Fatalf("Client with MAC %s not found in database.", state.MaskMAC(mac))
 	}
 
 	bytesLimit := mb * 1024 * 1024
@@ -291,9 +291,9 @@ func limitClient(db *state.DB, mac string, mb int64) {
 	}
 
 	if mb == 0 {
-		fmt.Printf("Removed data quota limit for client %s successfully.\n", mac)
+		fmt.Printf("Removed data quota limit for client %s successfully.\n", state.MaskMAC(mac))
 	} else {
-		fmt.Printf("Set data quota limit for client %s to %d MB (%s) successfully.\n", mac, mb, formatBytes(bytesLimit))
+		fmt.Printf("Set data quota limit for client %s to %d MB (%s) successfully.\n", state.MaskMAC(mac), mb, formatBytes(bytesLimit))
 	}
 }
 
@@ -303,7 +303,7 @@ func bandClient(db *state.DB, fw *firewall.Firewall, mac, downSpeed, upSpeed str
 		log.Fatalf("Error querying client: %v", err)
 	}
 	if client == nil {
-		log.Fatalf("Client with MAC %s not found in database.", mac)
+		log.Fatalf("Client with MAC %s not found in database.", state.MaskMAC(mac))
 	}
 
 	if err := db.UpdateBandwidth(mac, downSpeed, upSpeed); err != nil {
@@ -312,10 +312,10 @@ func bandClient(db *state.DB, fw *firewall.Firewall, mac, downSpeed, upSpeed str
 
 	if client.State == state.StateAuthenticated {
 		if err := fw.BlockClient(mac, client.IP); err != nil {
-			log.Printf("Warning: error removing old QoS for %s: %v", mac, err)
+			log.Printf("Warning: error removing old QoS for %s: %v", state.MaskMAC(mac), err)
 		}
 		if err := fw.AllowClientWithSpeed(mac, client.IP, downSpeed, upSpeed); err != nil {
-			log.Printf("Warning: error applying new QoS for %s: %v", mac, err)
+			log.Printf("Warning: error applying new QoS for %s: %v", state.MaskMAC(mac), err)
 		}
 	}
 
@@ -325,5 +325,5 @@ func bandClient(db *state.DB, fw *firewall.Firewall, mac, downSpeed, upSpeed str
 	if upSpeed == "0" || upSpeed == "" {
 		upSpeed = "unlimited"
 	}
-	fmt.Printf("Set bandwidth limits for %s: ↓ %s / ↑ %s\n", mac, downSpeed, upSpeed)
+	fmt.Printf("Set bandwidth limits for %s: ↓ %s / ↑ %s\n", state.MaskMAC(mac), downSpeed, upSpeed)
 }

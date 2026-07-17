@@ -2,7 +2,7 @@
 
 > Última actualización: 2026-07-16
 > Referencia: Ley Orgánica de Protección de Datos Personales del Ecuador
-> Estado: **En progreso** — Fase 2 completada
+> Estado: **En progreso** — Fase 4 completada
 
 ---
 
@@ -75,6 +75,17 @@ Documentar el plan de cumplimiento de la LOPDP para el sistema Catsplash, identi
 | Sección de seguridad en CONTRIBUTING.md | ✅ | `CONTRIBUTING.md` |
 | Requisitos LOPDP actualizados | ✅ | `docs/requirements.md` |
 
+### Fase 4: CI/CD y automatización ✅
+
+| Actividad | Estado | Archivo |
+|-----------|--------|---------|
+| Pipeline GitHub Actions (build, test, vet, gosec, lint) | ✅ | `.github/workflows/ci.yml` |
+| LOPDP compliance check (grep linter) | ✅ | `.github/scripts/lopdp-check.sh` |
+| MaskMAC/MaskIP en state (reutilizable) | ✅ | `state/masking.go` |
+| Fix de violaciones existentes en logs | ✅ | `main.go`, `catsctl/main.go`, `server/handler_auth.go` |
+| Tests de MaskMAC/MaskIP | ✅ | `state/masking_test.go` |
+| Makefile targets (gosec, lopdp-check, security) | ✅ | `Makefile` |
+
 ---
 
 ## 4. Requisitos LOPDP y estado de cumplimiento
@@ -116,7 +127,7 @@ Documentar el plan de cumplimiento de la LOPDP para el sistema Catsplash, identi
 |---|-----------|-----------|
 | 6 | Endpoint de portabilidad en formato estándar | Media |
 | 7 | Monitoreo de MACs duplicadas (anti-spoofing) | Media |
-| 8 | CI/CD con análisis de seguridad estático (gosec) | Baja |
+| 8 | ~~CI/CD con análisis de seguridad estático (gosec)~~ | ✅ completado |
 | 9 | Simulacro de respuesta a incidentes | Baja |
 | 10 | Pruebas de penetración externas | Baja |
 
@@ -147,5 +158,6 @@ Documentar el plan de cumplimiento de la LOPDP para el sistema Catsplash, identi
 | Fecha | Revisión | Responsable |
 |-------|----------|-------------|
 | 2026-07-16 | Plan inicial — Fases 0-3 | Desarrollador principal |
+| 2026-07-16 | Fase 4: CI/CD y automatización | Desarrollador principal |
 | [cada 6 meses] | Revisión de cumplimiento | [Responsable de cumplimiento] |
 | [anualmente] | Auditoría externa | [Auditor] |

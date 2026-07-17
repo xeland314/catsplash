@@ -18,14 +18,14 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	formNonce := r.FormValue("nonce")
 
 	if err != nil {
-		log.Printf("Auth failed: missing cookie 'catsplash_nonce' for IP %s", r.RemoteAddr)
+		log.Printf("Auth failed: missing cookie 'catsplash_nonce' for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr)))
 		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "missing_cookie")
 		s.renderError(w, "Sesión inválida (falta cookie). Por favor, habilita las cookies e intenta de nuevo.")
 		return
 	}
 
 	if cookie.Value != formNonce {
-		log.Printf("Auth failed: nonce mismatch for IP %s", r.RemoteAddr)
+		log.Printf("Auth failed: nonce mismatch for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr)))
 		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "nonce_mismatch")
 		s.renderError(w, "Sesión inválida (mismatch). Por favor, recarga la página e intenta de nuevo.")
 		return
@@ -34,7 +34,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	// Validate consent
 	consent := r.FormValue("consent") == "true"
 	if !consent {
-		log.Printf("Auth failed: no consent for IP %s", r.RemoteAddr)
+		log.Printf("Auth failed: no consent for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr)))
 		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "no_consent")
 		s.renderError(w, "Debes aceptar la política de privacidad para conectarte.")
 		return
@@ -43,7 +43,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	ip := getIPFromRemoteAddr(r.RemoteAddr)
 	mac, err := getMACFromIP(ip)
 	if err != nil {
-		log.Printf("Auth failed: could not resolve MAC for IP %s", ip)
+		log.Printf("Auth failed: could not resolve MAC for IP %s", maskIP(ip)) // lopdp:ignore — "MAC" is in message text, not logged as data
 		s.renderError(w, "No se pudo identificar tu dispositivo.")
 		return
 	}

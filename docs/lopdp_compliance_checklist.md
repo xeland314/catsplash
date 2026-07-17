@@ -89,10 +89,20 @@ Marcar con `[x]` los puntos que están conformes. Los puntos con `[ ]` requieren
 - [x] Tests de sanitización de MAC (16 payloads)
 - [x] Tests de rate limiting (6 tests)
 - [x] Tests de anonimización de logs (5 tests)
-- [ ] Tests de cifrado de DB (pendiente: Fase 4)
-- [ ] Tests de HTTPS (pendiente: Fase 4)
+- [x] Tests de MaskMAC/MaskIP en state (8 tests)
+- [ ] Tests de cifrado de DB (pendiente: Fase 5)
+- [ ] Tests de HTTPS (pendiente: Fase 5)
 
-## 8. Incidentes
+## 8. CI/CD y automatización
+
+- [x] Pipeline GitHub Actions con build, test, vet, gosec, lint
+- [x] LOPDP compliance check (script que detecta MAC/IP en texto plano en logs)
+- [x] Makefile targets para gosec, lopdp-check, security
+- [ ] Análisis de dependencias con `govulncheck` (pendiente)
+- [ ] Simulacro de respuesta realizado (último: nunca)
+- [ ] Registro de incidentes actualizado
+
+## 9. Incidentes
 
 - [x] Plan de respuesta a incidentes documentado
 - [x] Plantilla de notificación a titulares disponible
@@ -112,9 +122,10 @@ Marcar con `[x]` los puntos que están conformes. Los puntos con `[ ]` requieren
 | Seguridad de los datos | 9 | 12 | 75% |
 | Registro de auditoría | 7 | 8 | 88% |
 | Documentación | 10 | 10 | 100% |
-| Testing | 7 | 9 | 78% |
+| Testing | 8 | 10 | 80% |
+| CI/CD y automatización | 3 | 5 | 60% |
 | Incidentes | 3 | 5 | 60% |
-| **TOTAL** | **58** | **68** | **85%** |
+| **TOTAL** | **65** | **79** | **82%** |
 
 ---
 

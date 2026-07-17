@@ -49,3 +49,9 @@ func maskMAC(mac string) string {
 	h := sha256.Sum256([]byte(mac))
 	return hex.EncodeToString(h[:4])
 }
+
+// maskIP returns a truncated SHA-256 hash of the IP address for safe logging.
+func maskIP(ip string) string {
+	h := sha256.Sum256([]byte(ip))
+	return hex.EncodeToString(h[:4])
+}
