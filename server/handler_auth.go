@@ -62,6 +62,11 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Store session token for ARCO+ data access
+	if err := s.db.SetSessionToken(mac, cookie.Value); err != nil {
+		log.Printf("Auth failed: SetSessionToken error for %s: %v", maskMAC(mac), err)
+	}
+
 	log.Printf("Auth success for %s", maskMAC(mac))
 
 	// Success

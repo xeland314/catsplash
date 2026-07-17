@@ -5,5 +5,6 @@ CREATE TABLE IF NOT EXISTS clients (
     connected_at INTEGER,
     last_seen INTEGER,
     consent_given INTEGER DEFAULT 0,
-    consent_timestamp INTEGER DEFAULT NULL
+    consent_timestamp INTEGER DEFAULT NULL,
+    session_token TEXT DEFAULT NULL
 );

@@ -41,6 +41,9 @@ func Open(path string) (*DB, error) {
 	db.Exec("ALTER TABLE clients ADD COLUMN consent_given INTEGER DEFAULT 0")
 	db.Exec("ALTER TABLE clients ADD COLUMN consent_timestamp INTEGER DEFAULT NULL")
 
+	// Dynamic column migration for ARCO+ session token
+	db.Exec("ALTER TABLE clients ADD COLUMN session_token TEXT DEFAULT NULL")
+
 	return &DB{Conn: db}, nil
 }
 

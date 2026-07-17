@@ -45,6 +45,8 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/portal", s.handlePortal)
 	mux.Handle("/auth", s.rl.Middleware(http.HandlerFunc(s.handleAuth)))
 	mux.HandleFunc("/privacy", s.handlePrivacy)
+	mux.Handle("/data-request", s.rl.Middleware(http.HandlerFunc(s.handleDataRequest)))
+	mux.Handle("/data-deletion", s.rl.Middleware(http.HandlerFunc(s.handleDataDeletion)))
 	mux.HandleFunc("/", s.handleRedirect) // Catch-all for intercepcion
 
 	return http.ListenAndServe(fmt.Sprintf(":%d", s.cfg.PortalPort), s.logMiddleware(mux))
