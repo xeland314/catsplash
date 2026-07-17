@@ -209,7 +209,7 @@ func TestAdminFormsWithClientsHaveCSRFToken(t *testing.T) {
 	db, _ := state.Open("test_csrf_forms.db")
 	defer os.Remove("test_csrf_forms.db")
 
-	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5")
+	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5", true)
 	db.Authenticate("AA:BB:CC:DD:EE:FF", "192.168.10.5")
 
 	fw := firewall.New("wlan0", "eth0", nil)
@@ -282,7 +282,7 @@ func TestAdminPostWithValidCSRFProcessesAction(t *testing.T) {
 	db, _ := state.Open("test_csrf_valid.db")
 	defer os.Remove("test_csrf_valid.db")
 
-	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5")
+	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5", true)
 	db.Authenticate("AA:BB:CC:DD:EE:FF", "192.168.10.5")
 
 	fw := firewall.New("wlan0", "eth0", nil)
@@ -380,7 +380,7 @@ func TestAdminRejectsShellInjectionViaMAC(t *testing.T) {
 			mock.Commands = nil
 
 			// Insert a real client so GetClient succeeds if validation is bypassed
-			db.UpsertClient("00:11:22:33:44:55", "192.168.10.5")
+			db.UpsertClient("00:11:22:33:44:55", "192.168.10.5", true)
 			db.Authenticate("00:11:22:33:44:55", "192.168.10.5")
 
 			// Get a valid CSRF token
@@ -470,7 +470,7 @@ func TestAdminAcceptsValidMAC(t *testing.T) {
 	db, _ := state.Open("test_valid_mac.db")
 	defer os.Remove("test_valid_mac.db")
 
-	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5")
+	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5", true)
 	db.Authenticate("AA:BB:CC:DD:EE:FF", "192.168.10.5")
 
 	mock := &testMockExecutor{}
@@ -509,7 +509,7 @@ func TestFormParserNeutralizesAmpersandPayloads(t *testing.T) {
 	db, _ := state.Open("test_amp_neutralize.db")
 	defer os.Remove("test_amp_neutralize.db")
 
-	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5")
+	db.UpsertClient("AA:BB:CC:DD:EE:FF", "192.168.10.5", true)
 	db.Authenticate("AA:BB:CC:DD:EE:FF", "192.168.10.5")
 
 	mock := &testMockExecutor{}

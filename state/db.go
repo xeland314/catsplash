@@ -37,6 +37,10 @@ func Open(path string) (*DB, error) {
 	db.Exec("ALTER TABLE clients ADD COLUMN download_speed TEXT DEFAULT ''")
 	db.Exec("ALTER TABLE clients ADD COLUMN upload_speed TEXT DEFAULT ''")
 
+	// Dynamic column migrations for LOPDP consent
+	db.Exec("ALTER TABLE clients ADD COLUMN consent_given INTEGER DEFAULT 0")
+	db.Exec("ALTER TABLE clients ADD COLUMN consent_timestamp INTEGER DEFAULT NULL")
+
 	return &DB{Conn: db}, nil
 }
 
