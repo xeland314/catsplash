@@ -8,71 +8,69 @@ set -euo pipefail
 
 VIOLATIONS=0
 
-# Find all log/print statements in Go files, excluding test files and vendor
-while IFS= read -r line; do
-  # Skip test files
-  if echo "$line" | grep -qE '_test\.go:'; then
-    continue
+check_line() {
+  local line="$1"
+  local file="$2"
+  local lineno="$3"
+
+  # Skip lopdp:ignore
+  if echo "$line" | grep -q '// lopdp:ignore'; then
+    return
   fi
 
-  # Check if line has lopdp:ignore comment
-  if echo "$line" | grep -qE '// lopdp:ignore'; then
-    continue
-  fi
-
-  # Extract file:line
-  file=$(echo "$line" | cut -d: -f1)
-  lineno=$(echo "$line" | cut -d: -f2)
-
-  # Check for log/fmt statements
+  # Skip if not a log/fmt print statement
   if ! echo "$line" | grep -qE '(log\.Printf|log\.Fatalf|fmt\.Printf|fmt\.Println|fmt\.Fatalf)'; then
-    continue
+    return
   fi
 
-  # Extract just the arguments after the format string to avoid false positives
-  # from variable names inside function calls (e.g., maskIP(getIPFromRemoteAddr(...)))
-  args=$(echo "$line" | sed 's/.*fmt\.\(Printf\|Println\|Fatalf\)\(.*\)/\2/' | sed 's/.*log\.\(Printf\|Fatalf\)\(.*\)/\2/')
+  # Extract only the format arguments (after the format string)
+  local args
+  args=$(echo "$line" | sed 's/.*"[^"]*"[[:space:]]*,[[:space:]]*//' 2>/dev/null || true)
 
-  # MAC leak detection: look for raw mac/MAC/addr variable references
-  # Exclude when preceded by maskMAC( or inside string literals
-  mac_raw=false
-  if echo "$args" | grep -qE '(^|[^a-zA-Z])(mac|\.MAC)([^a-zA-Z]|$)'; then
-    # Check it's not inside maskMAC() call
-    if ! echo "$args" | grep -qE 'maskMAC\('; then
-      mac_raw=true
-    fi
-  fi
-  if echo "$args" | grep -qE '(^|[^a-zA-Z])(addr|\.Addr)([^a-zA-Z]|$)'; then
-    if ! echo "$args" | grep -qE 'maskMAC\('; then
-      mac_raw=true
-    fi
+  # If no args extracted (no comma after string), nothing to check
+  if [ -z "$args" ]; then
+    return
   fi
 
-  # IP leak detection: look for raw ip/IP/RemoteAddr variable references
-  # Exclude when preceded by maskIP( or inside string literals
-  ip_raw=false
-  if echo "$args" | grep -qE '(^|[^a-zA-Z])(ip|\.IP)([^a-zA-Z]|$)'; then
-    if ! echo "$args" | grep -qE 'maskIP\('; then
-      ip_raw=true
-    fi
-  fi
-  if echo "$args" | grep -qE 'RemoteAddr'; then
-    if ! echo "$args" | grep -qE 'maskIP\('; then
-      ip_raw=true
-    fi
-  fi
-
-  if [ "$mac_raw" = true ]; then
+  # --- MAC check ---
+  # Detect raw mac/MAC references NOT inside a maskMAC call
+  # Step 1: Remove all maskMAC(...) calls from args
+  local cleaned
+  cleaned=$(echo "$args" | sed -E 's/maskMAC\([^)]*\)//g')
+  # Step 2: Also remove state.MaskMAC(...) calls
+  cleaned=$(echo "$cleaned" | sed -E 's/[a-zA-Z_]+\.MaskMAC\([^)]*\)//g')
+  # Step 3: Check if raw mac/MAC/addr remains
+  if echo "$cleaned" | grep -qE '(^|[^a-zA-Z_.])(mac|\.MAC|addr|\.Addr)([^a-zA-Z]|$)'; then
     echo "VIOLATION: Potential plaintext MAC in log at $file:$lineno"
     echo "  -> $line"
     VIOLATIONS=$((VIOLATIONS + 1))
+    return
   fi
 
-  if [ "$ip_raw" = true ]; then
+  # --- IP check ---
+  # Detect raw ip/IP/RemoteAddr references NOT inside a maskIP call
+  cleaned=$(echo "$args" | sed -E 's/maskIP\([^)]*\)//g')
+  cleaned=$(echo "$cleaned" | sed -E 's/[a-zA-Z_]+\.MaskIP\([^)]*\)//g')
+  if echo "$cleaned" | grep -qE '(^|[^a-zA-Z_.])(ip|\.IP)([^a-zA-Z]|$)'; then
     echo "VIOLATION: Potential plaintext IP in log at $file:$lineno"
     echo "  -> $line"
     VIOLATIONS=$((VIOLATIONS + 1))
+    return
   fi
+  if echo "$cleaned" | grep -qE 'RemoteAddr'; then
+    echo "VIOLATION: Potential plaintext IP in log at $file:$lineno"
+    echo "  -> $line"
+    VIOLATIONS=$((VIOLATIONS + 1))
+    return
+  fi
+}
+
+# Find all log/print statements in Go files, excluding test files and vendor
+while IFS= read -r match; do
+  file=$(echo "$match" | cut -d: -f1)
+  lineno=$(echo "$match" | cut -d: -f2)
+  content=$(echo "$match" | cut -d: -f3-)
+  check_line "$content" "$file" "$lineno"
 done < <(grep -rn -E '(log\.Printf|log\.Fatalf|fmt\.Printf|fmt\.Println|fmt\.Fatalf)' --include='*.go' . | grep -v '_test\.go' | grep -v 'vendor/')
 
 if [ $VIOLATIONS -gt 0 ]; then
