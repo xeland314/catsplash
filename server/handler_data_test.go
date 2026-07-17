@@ -275,3 +275,74 @@ func TestHandleDataDeletionIsIrreversible(t *testing.T) {
 		t.Errorf("second deletion: expected 404 (already deleted), got %d", rr2.Code)
 	}
 }
+
+func TestHandleDataRequestCreatesAuditEntry(t *testing.T) {
+	srv, cleanup := setupDataTestServer(t)
+	defer cleanup()
+
+	token := "audit_request_token"
+	insertTestClientWithSession(t, srv.db, "AA:BB:CC:DD:EE:FF", "10.0.0.5", token)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/data-request", nil)
+	req.RemoteAddr = "10.0.0.5:12345"
+	req.AddCookie(&http.Cookie{Name: "catsplash_nonce", Value: token})
+
+	srv.handleDataRequest(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+
+	// Verify audit entry was created
+	events, err := srv.db.ListAuditEvents(10)
+	if err != nil {
+		t.Fatalf("ListAuditEvents failed: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 audit event, got %d", len(events))
+	}
+	if events[0].Action != state.AuditDataAccess {
+		t.Errorf("expected action data_access, got %s", events[0].Action)
+	}
+	if events[0].SubjectMAC == "AA:BB:CC:DD:EE:FF" {
+		t.Error("audit log must not contain real MAC")
+	}
+	if events[0].RequesterIP != "10.0.0.5" {
+		t.Errorf("expected requester IP 10.0.0.5, got %s", events[0].RequesterIP)
+	}
+}
+
+func TestHandleDataDeletionCreatesAuditEntry(t *testing.T) {
+	srv, cleanup := setupDataTestServer(t)
+	defer cleanup()
+
+	token := "audit_deletion_token"
+	insertTestClientWithSession(t, srv.db, "AA:BB:CC:DD:EE:FF", "10.0.0.6", token)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/data-deletion", nil)
+	req.RemoteAddr = "10.0.0.6:12345"
+	req.AddCookie(&http.Cookie{Name: "catsplash_nonce", Value: token})
+
+	srv.handleDataDeletion(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+
+	// Verify audit entry was created
+	events, err := srv.db.ListAuditEvents(10)
+	if err != nil {
+		t.Fatalf("ListAuditEvents failed: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 audit event, got %d", len(events))
+	}
+	if events[0].Action != state.AuditDataDeletion {
+		t.Errorf("expected action data_deletion, got %s", events[0].Action)
+	}
+	if events[0].Details != "arco_plus_cancelacion" {
+		t.Errorf("expected details arco_plus_cancelacion, got %s", events[0].Details)
+	}
+}

@@ -70,6 +70,9 @@ func (s *Server) handleDataRequest(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("DataRequest: data exported for %s", maskMAC(client.MAC))
 
+	// Audit trail — LOPDP traceability
+	s.db.LogAuditEvent(state.AuditDataAccess, maskMAC(client.MAC), getIPFromRemoteAddr(r.RemoteAddr), "json_export")
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
@@ -101,6 +104,9 @@ func (s *Server) handleDataDeletion(w http.ResponseWriter, r *http.Request) {
 	if err := s.fw.BlockClient(mac, ip); err != nil {
 		log.Printf("DataDeletion: firewall block error for %s: %v", maskMAC(mac), err)
 	}
+
+	// Audit trail — LOPDP traceability (log BEFORE deletion, since record won't exist after)
+	s.db.LogAuditEvent(state.AuditDataDeletion, maskMAC(mac), getIPFromRemoteAddr(r.RemoteAddr), "arco_plus_cancelacion")
 
 	// Delete client record from DB
 	if err := s.db.DeleteClient(mac); err != nil {

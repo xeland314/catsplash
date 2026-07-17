@@ -31,6 +31,10 @@ tr:hover td{background:rgba(241,164,73,.03)}
 .btn-extend:hover{background:#1a3a1a;color:var(--green)}
 .mini-input{width:45px;padding:.15rem .25rem;font-size:.72rem;font-family:inherit;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:2px;text-align:center;margin-right:2px}
 .empty{color:#6a5040;font-style:italic;font-size:.85rem;padding:.5rem 0}
+.audit-data_access{color:var(--accent)}
+.audit-data_deletion{color:var(--red)}
+.audit-auth_success{color:var(--green)}
+.audit-auth_denied{color:var(--red)}
 .footer{margin-top:2rem;padding-top:.75rem;border-top:1px solid var(--border);font-size:.7rem;color:#5a4a3a;text-align:center}
 </style>
 </head>
@@ -122,6 +126,28 @@ tr:hover td{background:rgba(241,164,73,.03)}
 </table>
 {{else}}
 <div class="empty">No hay clientes pendientes.</div>
+{{end}}
+
+<h2>Registro de Auditoría LOPDP ({{len .AuditLog}})</h2>
+{{if .AuditLog}}
+<table>
+<thead><tr>
+<th>Fecha</th><th>Acción</th><th>Sujeto</th><th>IP Solicitante</th><th>Detalles</th>
+</tr></thead>
+<tbody>
+{{range .AuditLog}}
+<tr>
+<td>{{.Timestamp | formatTime}}</td>
+<td><span class="audit-{{.Action}}">{{.Action}}</span></td>
+<td class="bytes">{{.SubjectMAC}}</td>
+<td class="bytes">{{.RequesterIP}}</td>
+<td class="bytes">{{.Details}}</td>
+</tr>
+{{end}}
+</tbody>
+</table>
+{{else}}
+<div class="empty">No hay eventos de auditoría registrados.</div>
 {{end}}
 
 <div class="footer">catsplash &mdash; portal cautivo</div>

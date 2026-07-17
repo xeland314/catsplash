@@ -8,3 +8,12 @@ CREATE TABLE IF NOT EXISTS clients (
     consent_timestamp INTEGER DEFAULT NULL,
     session_token TEXT DEFAULT NULL
 );
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp   INTEGER NOT NULL,
+    action      TEXT    NOT NULL,
+    subject_mac TEXT    NOT NULL,
+    requester_ip TEXT   NOT NULL,
+    details     TEXT    DEFAULT ''
+);
