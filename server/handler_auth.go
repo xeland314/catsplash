@@ -18,15 +18,19 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	formNonce := r.FormValue("nonce")
 
 	if err != nil {
-		log.Printf("Auth failed: missing cookie 'catsplash_nonce' for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr)))
-		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "missing_cookie")
+		log.Printf("Auth failed: missing cookie 'catsplash_nonce' for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr))) // #nosec G706 -- input is SHA-256 hashed
+		if logErr := s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "missing_cookie"); logErr != nil {
+			log.Printf("Failed to log audit event: %v", logErr)
+		}
 		s.renderError(w, "Sesión inválida (falta cookie). Por favor, habilita las cookies e intenta de nuevo.")
 		return
 	}
 
 	if cookie.Value != formNonce {
-		log.Printf("Auth failed: nonce mismatch for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr)))
-		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "nonce_mismatch")
+		log.Printf("Auth failed: nonce mismatch for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr))) // #nosec G706 -- input is SHA-256 hashed
+		if logErr := s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "nonce_mismatch"); logErr != nil {
+			log.Printf("Failed to log audit event: %v", logErr)
+		}
 		s.renderError(w, "Sesión inválida (mismatch). Por favor, recarga la página e intenta de nuevo.")
 		return
 	}
@@ -34,8 +38,10 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	// Validate consent
 	consent := r.FormValue("consent") == "true"
 	if !consent {
-		log.Printf("Auth failed: no consent for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr)))
-		s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "no_consent")
+		log.Printf("Auth failed: no consent for IP %s", maskIP(getIPFromRemoteAddr(r.RemoteAddr))) // #nosec G706 -- input is SHA-256 hashed
+		if logErr := s.db.LogAuditEvent(state.AuditAuthDenied, "unknown", getIPFromRemoteAddr(r.RemoteAddr), "no_consent"); logErr != nil {
+			log.Printf("Failed to log audit event: %v", logErr)
+		}
 		s.renderError(w, "Debes aceptar la política de privacidad para conectarte.")
 		return
 	}
@@ -43,7 +49,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	ip := getIPFromRemoteAddr(r.RemoteAddr)
 	mac, err := getMACFromIP(ip)
 	if err != nil {
-		log.Printf("Auth failed: could not resolve MAC for IP %s", maskIP(ip)) // lopdp:ignore — "MAC" is in message text, not logged as data
+		log.Printf("Auth failed: could not resolve MAC for IP %s", maskIP(ip)) // lopdp:ignore — "MAC" is in message text, not logged as data  // #nosec G706 -- input is SHA-256 hashed
 		s.renderError(w, "No se pudo identificar tu dispositivo.")
 		return
 	}
@@ -75,7 +81,9 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Auth success for %s", maskMAC(mac))
 
 	// Audit trail — LOPDP traceability
-	s.db.LogAuditEvent(state.AuditAuthSuccess, maskMAC(mac), ip, "session_started")
+	if logErr := s.db.LogAuditEvent(state.AuditAuthSuccess, maskMAC(mac), ip, "session_started"); logErr != nil {
+		log.Printf("Failed to log audit event: %v", logErr)
+	}
 
 	// Success
 	data := struct {
@@ -83,7 +91,9 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	}{
 		RedirectURL: "http://www.google.com", // Default redirect
 	}
-	s.templates.ExecuteTemplate(w, "success.html", data)
+	if tplErr := s.templates.ExecuteTemplate(w, "success.html", data); tplErr != nil {
+		log.Printf("Failed to render success template: %v", tplErr)
+	}
 }
 
 func (s *Server) renderError(w http.ResponseWriter, msg string) {
@@ -93,5 +103,7 @@ func (s *Server) renderError(w http.ResponseWriter, msg string) {
 	}{
 		Message: msg,
 	}
-	s.templates.ExecuteTemplate(w, "error.html", data)
+	if err := s.templates.ExecuteTemplate(w, "error.html", data); err != nil {
+		log.Printf("Failed to render error template: %v", err)
+	}
 }

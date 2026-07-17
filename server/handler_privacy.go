@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -24,7 +25,9 @@ func (s *Server) handlePrivacy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	s.templates.ExecuteTemplate(w, "privacy.html", data)
+	if err := s.templates.ExecuteTemplate(w, "privacy.html", data); err != nil {
+		log.Printf("Failed to render privacy template: %v", err)
+	}
 }
 
 func mdToHTML(md string) string {

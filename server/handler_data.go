@@ -71,10 +71,14 @@ func (s *Server) handleDataRequest(w http.ResponseWriter, r *http.Request) {
 	log.Printf("DataRequest: data exported for %s", maskMAC(client.MAC))
 
 	// Audit trail — LOPDP traceability
-	s.db.LogAuditEvent(state.AuditDataAccess, maskMAC(client.MAC), getIPFromRemoteAddr(r.RemoteAddr), "json_export")
+	if logErr := s.db.LogAuditEvent(state.AuditDataAccess, maskMAC(client.MAC), getIPFromRemoteAddr(r.RemoteAddr), "json_export"); logErr != nil {
+		log.Printf("Failed to log audit event: %v", logErr)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("DataRequest: encode error: %v", err)
+	}
 }
 
 // handleDataDeletion handles POST /data-deletion — ARCO+ data deletion (cancelación).
@@ -106,7 +110,9 @@ func (s *Server) handleDataDeletion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Audit trail — LOPDP traceability (log BEFORE deletion, since record won't exist after)
-	s.db.LogAuditEvent(state.AuditDataDeletion, maskMAC(mac), getIPFromRemoteAddr(r.RemoteAddr), "arco_plus_cancelacion")
+	if logErr := s.db.LogAuditEvent(state.AuditDataDeletion, maskMAC(mac), getIPFromRemoteAddr(r.RemoteAddr), "arco_plus_cancelacion"); logErr != nil {
+		log.Printf("Failed to log audit event: %v", logErr)
+	}
 
 	// Delete client record from DB
 	if err := s.db.DeleteClient(mac); err != nil {
@@ -118,5 +124,7 @@ func (s *Server) handleDataDeletion(w http.ResponseWriter, r *http.Request) {
 	log.Printf("DataDeletion: data deleted for %s", maskMAC(mac))
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"ok":true,"message":"Datos eliminados correctamente"}`))
+	if _, err := w.Write([]byte(`{"ok":true,"message":"Datos eliminados correctamente"}`)); err != nil {
+		log.Printf("DataDeletion: write response error: %v", err)
+	}
 }
