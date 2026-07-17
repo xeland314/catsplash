@@ -217,7 +217,7 @@ func listClients(db *state.DB, sessionTimeout, idleTimeout int) {
 
 func authClient(db *state.DB, fw *firewall.Firewall, mac, ip string) {
 	// First update state in DB
-	if err := db.UpsertClient(mac, ip); err != nil {
+	if err := db.UpsertClient(mac, ip, true); err != nil {
 		log.Fatalf("Error upserting client: %v", err)
 	}
 	if err := db.Authenticate(mac, ip); err != nil {

@@ -27,10 +27,10 @@ func TestReaper(t *testing.T) {
 	mac1 := "00:11:22:33:44:55"
 	mac2 := "AA:BB:CC:DD:EE:FF"
 
-	db.UpsertClient(mac1, "1.1.1.1")
+	db.UpsertClient(mac1, "1.1.1.1", true)
 	db.Authenticate(mac1, "1.1.1.1")
 
-	db.UpsertClient(mac2, "2.2.2.2")
+	db.UpsertClient(mac2, "2.2.2.2", true)
 	db.Authenticate(mac2, "2.2.2.2")
 
 	// Wait 2s (should trigger idle for both since idleTimeout is 1s)

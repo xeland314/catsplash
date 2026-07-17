@@ -19,7 +19,7 @@ func TestClientOperations(t *testing.T) {
 	ip := "192.168.1.10"
 
 	// Upsert
-	if err := db.UpsertClient(mac, ip); err != nil {
+	if err := db.UpsertClient(mac, ip, true); err != nil {
 		t.Fatalf("Upsert failed: %v", err)
 	}
 

@@ -27,6 +27,14 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate consent
+	consent := r.FormValue("consent") == "true"
+	if !consent {
+		log.Printf("Auth failed: no consent for IP %s", r.RemoteAddr)
+		s.renderError(w, "Debes aceptar la política de privacidad para conectarte.")
+		return
+	}
+
 	ip := getIPFromRemoteAddr(r.RemoteAddr)
 	mac, err := getMACFromIP(ip)
 	if err != nil {
@@ -36,7 +44,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update DB and Firewall
-	if err := s.db.UpsertClient(mac, ip); err != nil {
+	if err := s.db.UpsertClient(mac, ip, consent); err != nil {
 		log.Printf("Auth failed: DB upsert error for %s: %v", maskMAC(mac), err)
 		s.renderError(w, "Error al registrar dispositivo.")
 		return

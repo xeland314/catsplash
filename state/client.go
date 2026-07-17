@@ -11,25 +11,32 @@ const (
 )
 
 type Client struct {
-	MAC           string
-	IP            string
-	State         string
-	ConnectedAt   int64
-	LastSeen      int64
-	BytesIn       int64
-	BytesOut      int64
-	MaxBytes      int64
-	DownloadSpeed string
-	UploadSpeed   string
+	MAC              string
+	IP               string
+	State            string
+	ConnectedAt      int64
+	LastSeen         int64
+	BytesIn          int64
+	BytesOut         int64
+	MaxBytes         int64
+	DownloadSpeed    string
+	UploadSpeed      string
+	ConsentGiven     bool
+	ConsentTimestamp int64
 }
 
 // UpsertClient inserts or updates a client record.
-func (db *DB) UpsertClient(mac, ip string) error {
+func (db *DB) UpsertClient(mac, ip string, consentGiven bool) error {
+	now := time.Now().Unix()
+	var consentTS interface{}
+	if consentGiven {
+		consentTS = now
+	}
 	_, err := db.Conn.Exec(`
-		INSERT INTO clients (mac, ip, last_seen)
-		VALUES (?, ?, ?)
-		ON CONFLICT(mac) DO UPDATE SET ip = ?, last_seen = ?`,
-		mac, ip, time.Now().Unix(), ip, time.Now().Unix())
+		INSERT INTO clients (mac, ip, last_seen, consent_given, consent_timestamp)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(mac) DO UPDATE SET ip = ?, last_seen = ?, consent_given = ?, consent_timestamp = ?`,
+		mac, ip, now, consentGiven, consentTS, ip, now, consentGiven, consentTS)
 	return err
 }
 
